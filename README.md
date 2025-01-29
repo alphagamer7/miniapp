@@ -1,4 +1,4 @@
-# Telegram Mini Apps React Template
+# Battle Royale
 
 > [!WARNING]
 > This template is archived and is more likely to be out of date.

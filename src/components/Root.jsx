@@ -4,6 +4,7 @@ import WebApp from '@twa-dev/sdk';
 
 import { App } from '@/components/App.jsx';
 import { ErrorBoundary } from '@/components/ErrorBoundary.jsx';
+import { GameDataProvider } from '@/provider/GameDataProvider';
 
 /**
  * @param {unknown} error
@@ -44,7 +45,10 @@ export function Inner() {
 
   return (
     <TonConnectUIProvider manifestUrl={manifestUrl}>
-      <App/>
+            <GameDataProvider>
+            <App/>
+          </GameDataProvider>
+   
     </TonConnectUIProvider>
   );
 }

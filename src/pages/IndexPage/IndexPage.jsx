@@ -38,6 +38,9 @@ export function IndexPage() {
         <Link to="/theme-params">
           <Cell subtitle="Telegram application palette information">Theme Parameters</Cell>
         </Link>
+        <Link to="/round-list">
+          <Cell subtitle="Telegram application palette information">Round List</Cell>
+        </Link>
       </Section>
     </List>
   );

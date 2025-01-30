@@ -14,7 +14,6 @@ import { PublicKey } from "@solana/web3.js";
 
 
 export const decodeGameData = (data) => {
-    console.log(`Data ${data}`)
     let offset = 8;
     const id = new TextDecoder().decode(data.slice(offset, 26)); // ULID (26 bytes)
     offset += 26;

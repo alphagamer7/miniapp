@@ -9,6 +9,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
+import {BottomNavBar } from '@/components/BottomNavBar';
 
 import { routes } from '@/navigation/routes.jsx';
 
@@ -51,6 +52,7 @@ export function App() {
           {routes.map((route) => <Route key={route.path} {...route} />)}
           <Route path='*' element={<Navigate to='/'/>}/>
         </Routes>
+        <BottomNavBar />
       </BrowserRouter>
     </AppRoot>
   );

@@ -2,6 +2,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
+import tailwindcss from '@tailwindcss/vite'
 // import basicSsl from '@vitejs/plugin-basic-ssl';
 
 // https://vitejs.dev/config/
@@ -14,6 +15,7 @@ export default defineConfig({
     // Allows using self-signed certificates to run the dev server using HTTPS.
     // https://www.npmjs.com/package/@vitejs/plugin-basic-ssl
     // basicSsl(),
+    tailwindcss(),
   ],
   publicDir: './public',
   server: {

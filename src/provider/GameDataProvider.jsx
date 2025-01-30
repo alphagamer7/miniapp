@@ -15,11 +15,11 @@ export const GameDataProvider = ({ children }) => {
   const [error, setError] = useState(null); // State to handle any errors.
   const [connection, setConnection] = useState(null); // State to manage the Solana connection.
 
-  const NETWORK_URL = "http://127.0.0.1:8899"; // Network URL for Solana connection.
-  const PROGRAM_ID = "4bBkyHda9na1mhWG6iHBShoNZtfyx9ZGYbvcFBjrqwGX"; // Public key of the deployed Solana program.
-  const GAME_SEED_PREFIX = "game"; // Prefix used to derive the PDA.
-  const GAME_ID = "01JJQKQTNZ6P9F7E7TJCGSBKPS"; // Identifier for the game.
+  const NETWORK_URL = "https://api.devnet.solana.com"; // Network URL for Solana connection.
+  const PROGRAM_ID = "3fNocwdPfKwywpS7E7GUGkPDBDhXJ9xsdDmNb4m7TKXr"; // Public key of the deployed Solana program.
 
+  const GAME_ID = "01JJTNB117QN0TYB0RQPX2V0N6"; // Identifier for the game.
+  const GAME_SEED_PREFIX = "game"; // Prefix used to derive the PDA.
   // Effect to establish the connection once on component mount.
   useEffect(() => {
     try {
@@ -42,7 +42,7 @@ export const GameDataProvider = ({ children }) => {
         if (!accountInfo) throw new Error("Game account not found"); // Error handling if account is not found.
 
         const decodedData = decodeGameData(accountInfo.data); // Decode the fetched game data.
-        console.log(`Data ${JSON.stringify(decodedData, null, 2)}`)
+  
         setGameData(decodedData); // Set the game data in state.
       } catch (err) {
         console.error('Fetching game data failed:', err);

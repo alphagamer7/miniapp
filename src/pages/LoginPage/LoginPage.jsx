@@ -11,13 +11,21 @@ const LoginScreen = () => {
     const connected = localStorage.getItem('connected');
     if (connected) {
       setIsConnected(true);
-      navigate('/round-list');
+      // navigate('/round-list');
     }
   }, [navigate]);
 
   const connectWallet = async () => {
     try {
       const provider = window.solana;
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        // For mobile devices, direct them to download Phantom
+        const urlToPhantom = 'https://phantom.app/download';
+        window.open(urlToPhantom, '_blank');
+        return;
+      }
 
       if (provider && provider.isPhantom) {
         try {
@@ -32,7 +40,8 @@ const LoginScreen = () => {
           console.error('User rejected the request:', err);
         }
       } else {
-        alert('Phantom wallet not found! Please install Phantom wallet.');
+        // For desktop, direct them to Phantom website
+        window.open('https://phantom.app/', '_blank');
       }
     } catch (error) {
       console.error('Error connecting to wallet:', error);

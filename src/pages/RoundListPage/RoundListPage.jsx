@@ -14,12 +14,26 @@ export function RoundListPage() {
     const GAME_ID = "01JJTNB117QN0TYB0RQPX2V0N6"; // Identifier for the game.
     // const GAME_ID = "01JJQKQTNZ6P9F7E7TJCGSBKPS";
 
-
+    const [userImage, setUserImage] = useState("");
+    const [userNameAndSurname, setUserNameAndSurname] = useState("");
     const [roundsData, setRoundsData] = useState([]);
     const [error, setError] = useState(null);
     const { gameData, connection } = useGameData();
     let datTimeList=["10 FEB 2024 22:22","12 FEB 12:00","31 FEB 09:10","02 MAR 23:00"]
   
+    useEffect(() => {
+      const initData = WebApp.initDataUnsafe;
+      if (initData && initData.user) {
+        setUserImage(initData.user.photo_url || "");
+          // Combine first_name and last_name
+          const fullName = [
+              initData.user.first_name,
+              initData.user.last_name
+          ].filter(Boolean).join(" ");
+          setUserNameAndSurname(fullName);
+      }
+  }, []);
+
     useEffect(() => {
        
       const deriveRoundPDA = async (roundId) => {
@@ -110,11 +124,11 @@ export function RoundListPage() {
       <div className="p-4">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <div className="text-white text-lg font-semibold">Hi, PakHChau</div>
+            <div className="text-white text-lg font-semibold">Hi, {userNameAndSurname == ""?"Pak Chau":userNameAndSurname}</div>
             <div className="text-white/60 text-sm">Welcome Back</div>
           </div>
           <div className="bg-yellow-500 w-10 h-10 rounded-full">
-            <img src="https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t500x500.jpg"/>
+            <img src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t500x500.jpg"}/>
           </div>
         </div>
         <h1 class="text-3xl font-bold text-white">

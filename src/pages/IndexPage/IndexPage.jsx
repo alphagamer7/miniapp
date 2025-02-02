@@ -5,11 +5,13 @@ import { Link } from '@/components/Link/Link.jsx';
 import tonSvg from './ton.svg';
 
 import './IndexPage.css';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * @returns {JSX.Element}
  */
 export function IndexPage() {
+  const navigate = useNavigate();
   const sectionStyle = {
     backgroundColor: '#5a178b',
     color: 'white',
@@ -17,10 +19,25 @@ export function IndexPage() {
     margin: '8px',
     padding: '4px'
   };
+  const disconnectWallet = async () => {
+    try {
+      const provider = window.solana;
+      
+      if (provider && provider.isPhantom) {
+        await provider.disconnect();
+        localStorage.removeItem('connected');
+        localStorage.removeItem('publicKey');
+       
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+    }
+  };
   return (
     <div className="min-h-screen bg-purple-900">
          <List>
-      <Section
+      {/* <Section
         
         header="Features"
         footer="You can use these pages to learn more about features, provided by Telegram Mini Apps and other useful projects"
@@ -34,7 +51,7 @@ export function IndexPage() {
             TON Connect
           </Cell>
         </Link>
-      </Section>
+      </Section> */}
       <Section
         header="Application Launch Data"
       
@@ -53,6 +70,10 @@ export function IndexPage() {
         {/* <Link to="/round-list">
           <Cell subtitle="Telegram application palette information"   style={{ backgroundColor: '#5a178b',color:'white' }}>Round List</Cell>
         </Link> */}
+         {/* <Link onClick={ disconnectWallet}>
+          <Cell subtitle="Telegram application palette information"    style={{ backgroundColor: '#5a178b',color:'white' }}> Disconnect Wallet  </Cell>
+        </Link> */}
+        
       </Section>
     </List>
     </div>

@@ -1,8 +1,12 @@
 import { IndexPage } from '@/pages/IndexPage/IndexPage';
 import { InitDataPage } from '@/pages/InitDataPage/InitDataPage';
+import { RoundListPage } from '@/pages/RoundListPage/RoundListPage';
+import { RoundListPage1 } from '@/pages/RoundListPage/RoundListPage1';
 import { LaunchParamsPage } from '@/pages/LaunchParamsPage/LaunchParamsPage.jsx';
 import { ThemeParamsPage } from '@/pages/ThemeParamsPage/ThemeParamsPage.jsx';
 import { TONConnectPage } from '@/pages/TONConnectPage/TONConnectPage';
+import { DisplayData } from '@/components/DisplayData/DisplayData';
+import LoginScreen from '@/pages/LoginPage/LoginPage';
 
 /**
  * @typedef {object} Route
@@ -16,10 +20,13 @@ import { TONConnectPage } from '@/pages/TONConnectPage/TONConnectPage';
  * @type {Route[]}
  */
 export const routes = [
-  { path: '/', Component: IndexPage },
+  { path: '/', Component: LoginScreen },
+  { path: '/user-data', Component: IndexPage },
   { path: '/init-data', Component: InitDataPage, title: 'Init Data' },
   { path: '/theme-params', Component: ThemeParamsPage, title: 'Theme Params' },
   { path: '/launch-params', Component: LaunchParamsPage, title: 'Launch Params' },
+  { path: '/display-data', Component: DisplayData, title: 'Display Data' },
+  { path: '/round-list', Component: RoundListPage, title: 'Display Data' },
   {
     path: '/ton-connect',
     Component: TONConnectPage,

@@ -9,6 +9,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
+import {BottomNavBar } from '@/components/BottomNavBar';
 
 import { routes } from '@/navigation/routes.jsx';
 
@@ -35,6 +36,16 @@ function BackButtonManipulator() {
 
   return null;
 }
+function NavigationHandler() {
+  const location = useLocation();
+  
+  // Hide BottomNavBar on login screen (root path)
+  if (location.pathname === '/') {
+    return null;
+  }
+  
+  return <BottomNavBar />;
+}
 
 /**
  * @return {JSX.Element}
@@ -51,6 +62,7 @@ export function App() {
           {routes.map((route) => <Route key={route.path} {...route} />)}
           <Route path='*' element={<Navigate to='/'/>}/>
         </Routes>
+        <NavigationHandler />
       </BrowserRouter>
     </AppRoot>
   );

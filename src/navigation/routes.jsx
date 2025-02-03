@@ -20,13 +20,13 @@ import LoginScreen from '@/pages/LoginPage/LoginPage';
  * @type {Route[]}
  */
 export const routes = [
-  // { path: '/', Component: LoginScreen },
+  { path: '/', Component: LoginScreen },
   { path: '/user-data', Component: IndexPage },
   { path: '/init-data', Component: InitDataPage, title: 'Init Data' },
   { path: '/theme-params', Component: ThemeParamsPage, title: 'Theme Params' },
   { path: '/launch-params', Component: LaunchParamsPage, title: 'Launch Params' },
   { path: '/display-data', Component: DisplayData, title: 'Display Data' },
-  { path: '/', Component: RoundListPage, title: 'Display Data' },
+  { path: '/round-list', Component: RoundListPage, title: 'Display Data' },
   {
     path: '/ton-connect',
     Component: TONConnectPage,

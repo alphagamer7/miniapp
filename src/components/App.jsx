@@ -40,9 +40,9 @@ function NavigationHandler() {
   const location = useLocation();
   
   // Hide BottomNavBar on login screen (root path)
-  // if (location.pathname === '/') {
-  //   return null;
-  // }
+  if (location.pathname === '/') {
+    return null;
+  }
   
   return <BottomNavBar />;
 }

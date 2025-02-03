@@ -37,7 +37,7 @@ export function IndexPage() {
   return (
     <div className="min-h-screen bg-purple-900">
          <List>
-      {/* <Section
+      <Section
         
         header="Features"
         footer="You can use these pages to learn more about features, provided by Telegram Mini Apps and other useful projects"
@@ -51,7 +51,7 @@ export function IndexPage() {
             TON Connect
           </Cell>
         </Link>
-      </Section> */}
+      </Section>
       <Section
         header="Application Launch Data"
       

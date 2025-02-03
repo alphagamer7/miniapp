@@ -31,7 +31,7 @@ const LoginScreen = () => {
         try {
           const response = await provider.connect();
           const pubKey = new PublicKey(response.publicKey.toString());
-          
+          console.log(`Pub Key ${pubKey}`)
           localStorage.setItem('connected', 'true');
           localStorage.setItem('publicKey', pubKey.toString());
           setIsConnected(true);

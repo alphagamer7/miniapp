@@ -17,30 +17,29 @@ const LoginScreen = () => {
 
   const connectWallet = async () => {
     try {
-      const provider = window.solana;
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
+      
       if (isMobile) {
-        // For mobile devices, direct them to download Phantom
-        const urlToPhantom = 'https://phantom.app/download';
-        window.open(urlToPhantom, '_blank');
+        // Phantom deep link for mobile
+        const dappUrl = encodeURIComponent(window.location.href);
+        const phantomDeepLink = `https://phantom.app/ul/v1/connect?app_url=${dappUrl}`;
+        
+        window.location.href = phantomDeepLink; // Redirect to Phantom
         return;
       }
-
+  
+      // Normal desktop connection
+      const provider = window.solana;
       if (provider && provider.isPhantom) {
-        try {
-          const response = await provider.connect();
-          const pubKey = new PublicKey(response.publicKey.toString());
-          console.log(`Pub Key ${pubKey}`)
-          localStorage.setItem('connected', 'true');
-          localStorage.setItem('publicKey', pubKey.toString());
-          setIsConnected(true);
-          navigate('/round-list');
-        } catch (err) {
-          console.error('User rejected the request:', err);
-        }
+        const response = await provider.connect();
+        const pubKey = new PublicKey(response.publicKey.toString());
+        console.log(`Pub Key: ${pubKey}`);
+        
+        localStorage.setItem('connected', 'true');
+        localStorage.setItem('publicKey', pubKey.toString());
+        setIsConnected(true);
+        navigate('/round-list');
       } else {
-        // For desktop, direct them to Phantom website
         window.open('https://phantom.app/', '_blank');
       }
     } catch (error) {

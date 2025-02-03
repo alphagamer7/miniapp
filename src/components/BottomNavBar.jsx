@@ -10,7 +10,7 @@ export const  BottomNavBar = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-purple-800 flex justify-around py-3">
       <button 
-        onClick={() => navigate('/round-list')}
+        onClick={() => navigate('/')}
         className={`p-2 rounded-lg ${currentPath === '/' ? 'bg-purple-700' : ''}`}
       >
         <Home className={`w-6 h-6 ${currentPath === '/' ? 'text-white' : 'text-gray-400'}`} />

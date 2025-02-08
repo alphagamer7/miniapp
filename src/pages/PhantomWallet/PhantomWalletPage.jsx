@@ -79,7 +79,7 @@ const PhantomWalletConnect = () => {
     const baseUrl = 'https://phantom.app/ul/v1';
     
     // Create the redirect URL with proper parameters
-    const redirectUrl = `${REDIRECT_BASE_URL}/phantom-callback`;
+    const redirectUrl = `${REDIRECT_BASE_URL}/phantom-callback.html`;
     const telegramData = encodeURIComponent(WebApp.initData);
     
     const params = new URLSearchParams({
@@ -188,7 +188,7 @@ const PhantomWalletConnect = () => {
               Connecting...
             </>
           ) : (
-            'Connect Phantom Wallet'
+            'Connect Phantom Wallet 1'
           )}
         </button>
       ) : (

@@ -28,42 +28,38 @@ const PhantomWalletConnect = () => {
   const buildConnectURL = () => {
     const baseUrl = 'https://phantom.app/ul/v1';
     
-    // Use your actual bot username and handle
-    const redirect = encodeURIComponent('https://t.me/testalphabot44123411bot/wallet');
+    // Create a dedicated external webpage URL for handling the return flow
+    // This should be your hosted webpage that can handle the Phantom callback
+    const redirect = encodeURIComponent('https://thealphanova.com/phantom-callback');
     
-    // For testing purposes we're using a placeholder key
-    // In production, you should use a proper encryption key
-    const dappKey = 'placeholder_key';
+    // Add necessary parameters for your callback page to identify the user
+    const telegramData = encodeURIComponent(WebApp.initData);
     
-    // Add cluster parameter for Solana network
-    const cluster = 'mainnet';
-    
-    return `${baseUrl}/connect?app_url=${redirect}&dapp_encryption_public_key=${dappKey}&cluster=${cluster}`;
+    return `${baseUrl}/connect?app_url=${redirect}?tg_data=${telegramData}&cluster=mainnet`;
   };
 
   const connectWallet = async () => {
     try {
       if (isMobile) {
         const connectUrl = buildConnectURL();
-        // Use Telegram's WebApp.openLink instead of window.location
-        WebApp.openLink(connectUrl);
+        
+        // Open in a new window/tab
+        WebApp.openLink(connectUrl, {
+          try_instant_view: false
+        });
         return;
       }
 
       // Desktop flow
       const provider = getProvider();
       if (!provider) {
-        // Use Telegram's WebApp.openLink for external links
         WebApp.openLink('https://phantom.app/');
         return;
       }
 
       const resp = await provider.connect();
       setWalletAddress(resp.publicKey.toString());
-      
-      // Optionally save the wallet address
       localStorage.setItem('phantomWallet', resp.publicKey.toString());
-      
       setError('');
     } catch (err) {
       setError('Failed to connect wallet: ' + err.message);
@@ -90,7 +86,6 @@ const PhantomWalletConnect = () => {
     }
   };
 
-  // Load saved wallet address on component mount
   useEffect(() => {
     const savedWallet = localStorage.getItem('phantomWallet');
     if (savedWallet) {
@@ -111,7 +106,7 @@ const PhantomWalletConnect = () => {
           onClick={connectWallet}
           className="bg-purple-500 hover:bg-purple-600 text-white text-sm py-1 px-3 rounded-full"
         >
-          Connect Wallet 1
+          Connect Wallet
         </button>
       ) : (
         <div className="flex flex-col items-end gap-1">

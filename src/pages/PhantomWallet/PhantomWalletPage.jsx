@@ -106,7 +106,7 @@ const PhantomWalletConnect = () => {
           onClick={connectWallet}
           className="bg-purple-500 hover:bg-purple-600 text-white text-sm py-1 px-3 rounded-full"
         >
-          Connect Wallet
+          Connect Wallet 2
         </button>
       ) : (
         <div className="flex flex-col items-end gap-1">

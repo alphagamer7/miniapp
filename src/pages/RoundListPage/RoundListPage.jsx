@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import { useGameData } from '@/provider/GameDataProvider';
 import { decodeRoundData } from "@/types/RoundDecoder";
 import { Connection, PublicKey } from "@solana/web3.js";
+import PhantomWalletConnect from '../PhantomWallet/PhantomWalletPage';
 export function RoundListPage() {
     const ROUND_SEED_PREFIX = "round";
     const PROGRAM_ID = "3fNocwdPfKwywpS7E7GUGkPDBDhXJ9xsdDmNb4m7TKXr"; // Public key of the deployed Solana program.
@@ -126,6 +127,9 @@ export function RoundListPage() {
           <div>
             <div className="text-white text-lg font-semibold">Hi, {userNameAndSurname == ""?"Pak Chau":userNameAndSurname}</div>
             <div className="text-white/60 text-sm">Welcome Back</div>
+          </div>
+          <div>
+            <PhantomWalletConnect/>
           </div>
           <div className="bg-yellow-500 w-10 h-10 rounded-full">
             <img src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t500x500.jpg"}/>

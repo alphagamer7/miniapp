@@ -30,7 +30,7 @@ const PhantomWalletConnect = () => {
     const baseUrl = 'https://phantom.app/ul/v1';
     
     // Your app's URL that Phantom will redirect back to
-    const redirect = encodeURIComponent('https://alphagamer7.github.io/miniapp/');
+    const redirect = encodeURIComponent('https://t.me/testalphabot44123411bot');
     
     // Construct the connect URL
     const connectUrl = `${baseUrl}/connect?app_url=${redirect}&dapp_encryption_public_key=test}`;

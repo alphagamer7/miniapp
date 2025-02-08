@@ -1,9 +1,19 @@
 // PhantomWalletPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const PhantomWalletConnect = () => {
   const [walletAddress, setWalletAddress] = useState('');
   const [error, setError] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Check if user is on mobile
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      return /android|ios|iphone|ipad|ipod/i.test(userAgent.toLowerCase());
+    };
+    setIsMobile(checkMobile());
+  }, []);
 
   const getProvider = () => {
     if ('phantom' in window) {
@@ -15,10 +25,30 @@ const PhantomWalletConnect = () => {
     return null;
   };
 
+  const buildConnectURL = () => {
+    // Base URL for universal links (recommended)
+    const baseUrl = 'https://phantom.app/ul/v1';
+    
+    // Your app's URL that Phantom will redirect back to
+    const redirect = encodeURIComponent('https://alphagamer7.github.io/miniapp/');
+    
+    // Construct the connect URL
+    const connectUrl = `${baseUrl}/connect?app_url=${redirect}&dapp_encryption_public_key=test}`;
+    
+    return connectUrl;
+  };
+
   const connectWallet = async () => {
     try {
+      if (isMobile) {
+        // Use deeplink for mobile
+        const connectUrl = buildConnectURL();
+        window.location.href = connectUrl;
+        return;
+      }
+
+      // Desktop flow
       const provider = getProvider();
-      
       if (!provider) {
         window.open('https://phantom.app/', '_blank');
         return;
@@ -34,6 +64,12 @@ const PhantomWalletConnect = () => {
 
   const disconnectWallet = async () => {
     try {
+      if (isMobile) {
+        // Handle mobile disconnect
+        setWalletAddress('');
+        return;
+      }
+
       const provider = getProvider();
       if (provider) {
         await provider.disconnect();

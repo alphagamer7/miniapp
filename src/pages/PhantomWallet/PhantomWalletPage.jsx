@@ -1,5 +1,6 @@
 // PhantomWalletPage.jsx
 import React, { useState, useEffect } from 'react';
+import WebApp from '@twa-dev/sdk';
 
 const PhantomWalletConnect = () => {
   const [walletAddress, setWalletAddress] = useState('');
@@ -7,7 +8,6 @@ const PhantomWalletConnect = () => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // Check if user is on mobile
     const checkMobile = () => {
       const userAgent = navigator.userAgent || navigator.vendor || window.opera;
       return /android|ios|iphone|ipad|ipod/i.test(userAgent.toLowerCase());
@@ -26,36 +26,44 @@ const PhantomWalletConnect = () => {
   };
 
   const buildConnectURL = () => {
-    // Base URL for universal links (recommended)
     const baseUrl = 'https://phantom.app/ul/v1';
     
-    // Your app's URL that Phantom will redirect back to
-    const redirect = encodeURIComponent('https://t.me/testalphabot44123411bot');
+    // Use your actual bot username and handle
+    const redirect = encodeURIComponent('https://t.me/testalphabot44123411bot/wallet');
     
-    // Construct the connect URL
-    const connectUrl = `${baseUrl}/connect?app_url=${redirect}&dapp_encryption_public_key=test}`;
+    // For testing purposes we're using a placeholder key
+    // In production, you should use a proper encryption key
+    const dappKey = 'placeholder_key';
     
-    return connectUrl;
+    // Add cluster parameter for Solana network
+    const cluster = 'mainnet';
+    
+    return `${baseUrl}/connect?app_url=${redirect}&dapp_encryption_public_key=${dappKey}&cluster=${cluster}`;
   };
 
   const connectWallet = async () => {
     try {
       if (isMobile) {
-        // Use deeplink for mobile
         const connectUrl = buildConnectURL();
-        window.location.href = connectUrl;
+        // Use Telegram's WebApp.openLink instead of window.location
+        WebApp.openLink(connectUrl);
         return;
       }
 
       // Desktop flow
       const provider = getProvider();
       if (!provider) {
-        window.open('https://phantom.app/', '_blank');
+        // Use Telegram's WebApp.openLink for external links
+        WebApp.openLink('https://phantom.app/');
         return;
       }
 
       const resp = await provider.connect();
       setWalletAddress(resp.publicKey.toString());
+      
+      // Optionally save the wallet address
+      localStorage.setItem('phantomWallet', resp.publicKey.toString());
+      
       setError('');
     } catch (err) {
       setError('Failed to connect wallet: ' + err.message);
@@ -65,8 +73,8 @@ const PhantomWalletConnect = () => {
   const disconnectWallet = async () => {
     try {
       if (isMobile) {
-        // Handle mobile disconnect
         setWalletAddress('');
+        localStorage.removeItem('phantomWallet');
         return;
       }
 
@@ -74,12 +82,21 @@ const PhantomWalletConnect = () => {
       if (provider) {
         await provider.disconnect();
         setWalletAddress('');
+        localStorage.removeItem('phantomWallet');
         setError('');
       }
     } catch (err) {
       setError('Failed to disconnect: ' + err.message);
     }
   };
+
+  // Load saved wallet address on component mount
+  useEffect(() => {
+    const savedWallet = localStorage.getItem('phantomWallet');
+    if (savedWallet) {
+      setWalletAddress(savedWallet);
+    }
+  }, []);
 
   return (
     <div>
@@ -94,7 +111,7 @@ const PhantomWalletConnect = () => {
           onClick={connectWallet}
           className="bg-purple-500 hover:bg-purple-600 text-white text-sm py-1 px-3 rounded-full"
         >
-          Connect Wallet
+          Connect Wallet 1
         </button>
       ) : (
         <div className="flex flex-col items-end gap-1">

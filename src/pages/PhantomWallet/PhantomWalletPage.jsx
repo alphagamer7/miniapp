@@ -84,6 +84,7 @@ const PhantomWalletConnect = () => {
     
     const params = new URLSearchParams({
       app_url: redirectUrl,
+      dapp_encryption_public_key:'5ZwaS5xtQpWcRsNnDhqL3HthZBR2KjNnqGgWwgcfm8HD',
       redirect_link: `${redirectUrl}?tg_data=${telegramData}`,
       cluster: 'mainnet',
       state: telegramData

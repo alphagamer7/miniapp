@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
+import nacl from "tweetnacl";
+import bs58 from "bs58";
+
 
 const PhantomWalletConnect = () => {
   const [walletAddress, setWalletAddress] = useState('');
   const [error, setError] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [dappKeyPair] = useState(nacl.box.keyPair());
 
   // Constants
   const TELEGRAM_BOT_URL = 'https://t.me/testalphabot44123411bot';
@@ -83,11 +87,10 @@ const PhantomWalletConnect = () => {
     const telegramData = encodeURIComponent(WebApp.initData);
     
     const params = new URLSearchParams({
-      app_url: redirectUrl,
-      dapp_encryption_public_key:'5ZwaS5xtQpWcRsNnDhqL3HthZBR2KjNnqGgWwgcfm8HD',
+      app_url: 'https://thealphanova.com/',
+      dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
       redirect_link: `${redirectUrl}?tg_data=${telegramData}`,
-      cluster: 'mainnet',
-      state: telegramData
+      cluster: 'devnet',
     });
 
     return `${baseUrl}/connect?${params.toString()}`;

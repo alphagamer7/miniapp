@@ -189,7 +189,7 @@ const PhantomWalletConnect = () => {
               Connecting...
             </>
           ) : (
-            'Connect Phantom Wallet 2'
+            'Connect Phantom Wallet 3'
           )}
         </button>
       ) : (

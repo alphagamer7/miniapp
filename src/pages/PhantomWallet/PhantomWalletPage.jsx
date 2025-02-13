@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
 
 const PhantomWalletConnect = () => {
   const [walletAddress, setWalletAddress] = useState('');
@@ -72,7 +71,7 @@ const PhantomWalletConnect = () => {
         const redirectUrl = `${window.location.origin}/phantom-callback.html`;
         const baseUrl = 'https://phantom.app/ul/v1/connect';
         const params = new URLSearchParams({
-          app_url: 'https://thealphanova.com/',
+          app_url: window.location.origin,
           redirect_link: redirectUrl,
           cluster: 'devnet'
         });
@@ -136,7 +135,7 @@ const PhantomWalletConnect = () => {
   };
 
   return (
-    <Card className="w-full max-w-md p-4">
+    <div className="w-full max-w-md p-4 bg-white rounded-lg shadow-md">
       <div className="flex flex-col items-center gap-4">
         {error && (
           <div className="w-full p-3 text-sm text-red-500 bg-red-100 rounded-lg">
@@ -191,7 +190,7 @@ const PhantomWalletConnect = () => {
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 };
 

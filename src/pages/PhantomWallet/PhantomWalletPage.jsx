@@ -1,54 +1,72 @@
 import React, { useState, useEffect } from 'react';
+import WebApp from '@twa-dev/sdk';
+import nacl from "tweetnacl";
+import bs58 from "bs58";
+
 
 const PhantomWalletConnect = () => {
   const [walletAddress, setWalletAddress] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [dappKeyPair] = useState(nacl.box.keyPair());
+
+  // Constants
+  const TELEGRAM_BOT_URL = 'https://t.me/testalphabot44123411bot';
+  const REDIRECT_BASE_URL = 'https://thealphanova.com';
 
   useEffect(() => {
-    // Check for return from Phantom connection
+    // Check if returning from Phantom connection
     const checkPhantomReturn = () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const startParam = urlParams.get('startapp');
-      
-      if (startParam) {
-        // Parse the wallet info from startapp parameter
-        const parts = startParam.split('_');
-        if (parts[0] === 'w' && parts[1]) {
-          setWalletAddress(parts[1]);
-          localStorage.setItem('phantomWallet', JSON.stringify({
-            wallet: parts[1],
-            timestamp: Date.now()
+      const phantomResponse = urlParams.get('phantom_response');
+      const state = urlParams.get('state');
+
+      if (phantomResponse && state) {
+        try {
+          const response = JSON.parse(decodeURIComponent(phantomResponse));
+          const decodedState = decodeURIComponent(state);
+
+          // Verify state matches our telegram data
+          if (decodedState === WebApp.initData) {
+            if (response.public_key) {
+              setWalletAddress(response.public_key);
+              localStorage.setItem('phantomWallet', response.public_key);
+              
+              // Notify the Telegram Mini App
+              WebApp.sendData(JSON.stringify({
+                type: 'wallet_connected',
+                wallet: response.public_key
+              }));
+            }
+          }
+        } catch (error) {
+          setError('Error processing wallet connection');
+          WebApp.sendData(JSON.stringify({
+            type: 'wallet_connection_error',
+            error: error.message
           }));
         }
       }
     };
 
-    // Check if mobile device
+    // Check device type
     const checkMobile = () => {
       const userAgent = navigator.userAgent || navigator.vendor || window.opera;
       return /android|ios|iphone|ipad|ipod/i.test(userAgent.toLowerCase());
     };
 
-    // Load any existing wallet connection
+    // Load saved wallet
     const loadSavedWallet = () => {
-      try {
-        const savedData = localStorage.getItem('phantomWallet');
-        if (savedData) {
-          const walletData = JSON.parse(savedData);
-          if (walletData.wallet) {
-            setWalletAddress(walletData.wallet);
-          }
-        }
-      } catch (err) {
-        console.error('Error loading saved wallet:', err);
+      const savedWallet = localStorage.getItem('phantomWallet');
+      if (savedWallet) {
+        setWalletAddress(savedWallet);
       }
     };
 
     setIsMobile(checkMobile());
-    checkPhantomReturn();
     loadSavedWallet();
+    checkPhantomReturn();
   }, []);
 
   const getProvider = () => {
@@ -61,30 +79,40 @@ const PhantomWalletConnect = () => {
     return null;
   };
 
+  const buildConnectURL = () => {
+    const baseUrl = 'https://phantom.app/ul/v1';
+    
+    // Create the redirect URL with proper parameters
+    const redirectUrl = `${REDIRECT_BASE_URL}/phantom-callback.html`;
+    const telegramData = encodeURIComponent(WebApp.initData);
+    
+    const params = new URLSearchParams({
+      app_url: 'https://thealphanova.com/',
+      dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
+      redirect_link: `${redirectUrl}?tg_data=${telegramData}`,
+      cluster: 'devnet',
+    });
+
+    return `${baseUrl}/connect?${params.toString()}`;
+  };
+
   const connectWallet = async () => {
     setIsLoading(true);
     setError('');
-
+    
     try {
       if (isMobile) {
-        // Mobile flow: Open Phantom wallet connection page
-        const redirectUrl = `http://thealphanova.com/phantom-callback.html`;
-        const baseUrl = 'https://phantom.app/ul/v1/connect';
-        const params = new URLSearchParams({
-          app_url: window.location.origin,
-          redirect_link: redirectUrl,
-          cluster: 'devnet'
+        const connectUrl = buildConnectURL();
+        WebApp.openLink(connectUrl, {
+          try_instant_view: false
         });
-        const connectUrl = `${baseUrl}?${params.toString()}`;
-        window.location.href = connectUrl;
         return;
       }
 
       // Desktop flow
       const provider = getProvider();
       if (!provider) {
-        window.open('https://phantom.app/', '_blank');
-        setError('Please install Phantom wallet');
+        WebApp.openLink('https://phantom.app/');
         return;
       }
 
@@ -92,21 +120,19 @@ const PhantomWalletConnect = () => {
       const publicKey = resp.publicKey.toString();
       
       setWalletAddress(publicKey);
-      localStorage.setItem('phantomWallet', JSON.stringify({
-        wallet: publicKey,
-        timestamp: Date.now()
+      localStorage.setItem('phantomWallet', publicKey);
+      
+      // Notify the Telegram Mini App
+      WebApp.sendData(JSON.stringify({
+        type: 'wallet_connected',
+        wallet: publicKey
       }));
-
-      // Notify parent component or handle connection success
-      if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.sendData(JSON.stringify({
-          type: 'wallet_connected',
-          wallet: publicKey
-        }));
-      }
     } catch (err) {
-      setError(err.message);
-      console.error('Wallet connection error:', err);
+      setError('Failed to connect wallet: ' + err.message);
+      WebApp.sendData(JSON.stringify({
+        type: 'wallet_connection_error',
+        error: err.message
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -115,15 +141,22 @@ const PhantomWalletConnect = () => {
   const disconnectWallet = async () => {
     setIsLoading(true);
     try {
+      if (isMobile) {
+        setWalletAddress('');
+        localStorage.removeItem('phantomWallet');
+        WebApp.sendData(JSON.stringify({
+          type: 'wallet_disconnected'
+        }));
+        return;
+      }
+
       const provider = getProvider();
       if (provider) {
         await provider.disconnect();
-      }
-      setWalletAddress('');
-      localStorage.removeItem('phantomWallet');
-      
-      if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.sendData(JSON.stringify({
+        setWalletAddress('');
+        localStorage.removeItem('phantomWallet');
+        setError('');
+        WebApp.sendData(JSON.stringify({
           type: 'wallet_disconnected'
         }));
       }
@@ -135,61 +168,59 @@ const PhantomWalletConnect = () => {
   };
 
   return (
-    <div className="w-full max-w-md p-4 bg-white rounded-lg shadow-md">
-      <div className="flex flex-col items-center gap-4">
-        {error && (
-          <div className="w-full p-3 text-sm text-red-500 bg-red-100 rounded-lg">
-            {error}
-          </div>
-        )}
-        
-        {!walletAddress ? (
+    <div className="flex flex-col items-center gap-2">
+      {error && (
+        <div className="text-red-500 text-xs mb-2 px-4 py-2 bg-red-100 rounded-lg">
+          {error}
+        </div>
+      )}
+      
+      {!walletAddress ? (
+        <button 
+          onClick={connectWallet}
+          disabled={isLoading}
+          className={`
+            bg-purple-500 hover:bg-purple-600 text-white 
+            text-sm py-2 px-4 rounded-lg
+            flex items-center gap-2
+            ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+          `}
+        >
+          {isLoading ? (
+            <>
+              <span className="animate-spin">⟳</span>
+              Connecting...
+            </>
+          ) : (
+            'Connect Phantom Wallet 5'
+          )}
+        </button>
+      ) : (
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-white text-sm bg-gray-800 px-3 py-1 rounded-lg">
+            {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+          </p>
           <button 
-            onClick={connectWallet}
+            onClick={disconnectWallet}
             disabled={isLoading}
             className={`
-              w-full bg-purple-600 hover:bg-purple-700 text-white 
-              font-medium py-2 px-4 rounded-lg
-              flex items-center justify-center gap-2
+              bg-red-500 hover:bg-red-600 text-white 
+              text-sm py-2 px-4 rounded-lg
+              flex items-center gap-2
               ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
             `}
           >
             {isLoading ? (
               <>
                 <span className="animate-spin">⟳</span>
-                Connecting...
+                Disconnecting...
               </>
             ) : (
-              'Connect Phantom Wallet'
+              'Disconnect Wallet'
             )}
           </button>
-        ) : (
-          <div className="flex flex-col items-center gap-3 w-full">
-            <p className="px-3 py-1 bg-gray-100 rounded-lg text-sm font-mono">
-              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-            </p>
-            <button 
-              onClick={disconnectWallet}
-              disabled={isLoading}
-              className={`
-                w-full bg-red-500 hover:bg-red-600 text-white 
-                font-medium py-2 px-4 rounded-lg
-                flex items-center justify-center gap-2
-                ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
-              `}
-            >
-              {isLoading ? (
-                <>
-                  <span className="animate-spin">⟳</span>
-                  Disconnecting...
-                </>
-              ) : (
-                'Disconnect Wallet'
-              )}
-            </button>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

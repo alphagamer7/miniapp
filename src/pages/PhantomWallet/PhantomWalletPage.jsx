@@ -15,12 +15,13 @@ const PhantomWalletConnect = () => {
   const REDIRECT_BASE_URL = 'https://thealphanova.com';
 
   useEffect(() => {
+    alert("parts1")
     // Check if returning from Phantom connection
     const checkPhantomReturn = async () => {
       // First check URL for startapp parameter
       const urlParams = new URLSearchParams(window.location.search);
       const startParam = urlParams.get('startapp');
-      
+      alert(startParam)
       if (startParam) {
         const parts = startParam.split('_');
         alert("parts")
@@ -218,7 +219,7 @@ const PhantomWalletConnect = () => {
               Connecting...
             </>
           ) : (
-            'Connect Phantom Wallet 7'
+            'Connect Phantom Wallet 8'
           )}
         </button>
       ) : (

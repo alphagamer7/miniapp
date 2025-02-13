@@ -68,7 +68,7 @@ const PhantomWalletConnect = () => {
     try {
       if (isMobile) {
         // Mobile flow: Open Phantom wallet connection page
-        const redirectUrl = `${window.location.origin}/phantom-callback.html`;
+        const redirectUrl = `http://thealphanova.com/phantom-callback.html`;
         const baseUrl = 'https://phantom.app/ul/v1/connect';
         const params = new URLSearchParams({
           app_url: window.location.origin,

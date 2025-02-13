@@ -20,7 +20,7 @@ const PhantomWalletConnect = () => {
       // First check URL for startapp parameter
       const startParam = WebApp.initDataUnsafe.start_param || 
                         new URLSearchParams(window.location.search).get('startapp');
-      
+      alert(startParam)
       if (startParam && /^[\w-]{0,512}$/.test(startParam)) {
         const parts = startParam.split('_');
         if (parts[0] === 'w' && parts[1] && parts[2] === 'u' && parts[4] === 's') {
@@ -224,7 +224,7 @@ const PhantomWalletConnect = () => {
               Connecting...
             </>
           ) : (
-            'Connect Phantom Wallet 9'
+            'Connect Phantom Wallet 6'
           )}
         </button>
       ) : (

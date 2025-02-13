@@ -15,23 +15,28 @@ const PhantomWalletConnect = () => {
   const REDIRECT_BASE_URL = 'https://thealphanova.com';
 
   useEffect(() => {
-    alert("parts1")
     // Check if returning from Phantom connection
     const checkPhantomReturn = async () => {
       // First check URL for startapp parameter
-      const urlParams = new URLSearchParams(window.location.search);
-      const startParam = urlParams.get('startapp');
-      alert(startParam)
-      if (startParam) {
+      const startParam = WebApp.initDataUnsafe.start_param || 
+                        new URLSearchParams(window.location.search).get('startapp');
+      
+      if (startParam && /^[\w-]{0,512}$/.test(startParam)) {
         const parts = startParam.split('_');
-        alert("parts")
-        if (parts[0] === 'w' && parts[1]) {
+        if (parts[0] === 'w' && parts[1] && parts[2] === 'u' && parts[4] === 's') {
+          const walletAddress = parts[1];
+          const userId = parts[3];
+          const sessionId = parts[5];
           const provider = getProvider();
           if (provider) {
             try {
               await provider.connect();
-              setWalletAddress(parts[1]);
-              localStorage.setItem('phantomWallet', parts[1]);
+              setWalletAddress(walletAddress);
+              localStorage.setItem('phantomWallet', JSON.stringify({
+                wallet: walletAddress,
+                userId: userId,
+                session: sessionId
+              }));
               
               WebApp.sendData(JSON.stringify({
                 type: 'wallet_connected',
@@ -219,7 +224,7 @@ const PhantomWalletConnect = () => {
               Connecting...
             </>
           ) : (
-            'Connect Phantom Wallet 8'
+            'Connect Phantom Wallet 9'
           )}
         </button>
       ) : (

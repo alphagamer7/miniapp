@@ -3,7 +3,6 @@ import WebApp from '@twa-dev/sdk';
 import nacl from "tweetnacl";
 import bs58 from "bs58";
 
-
 const PhantomWalletConnect = () => {
   const [walletAddress, setWalletAddress] = useState('');
   const [error, setError] = useState('');
@@ -17,8 +16,34 @@ const PhantomWalletConnect = () => {
 
   useEffect(() => {
     // Check if returning from Phantom connection
-    const checkPhantomReturn = () => {
+    const checkPhantomReturn = async () => {
+      // First check URL for startapp parameter
       const urlParams = new URLSearchParams(window.location.search);
+      const startParam = urlParams.get('startapp');
+      
+      if (startParam) {
+        const parts = startParam.split('_');
+        if (parts[0] === 'w' && parts[1]) {
+          const provider = getProvider();
+          if (provider) {
+            try {
+              await provider.connect();
+              setWalletAddress(parts[1]);
+              localStorage.setItem('phantomWallet', parts[1]);
+              
+              WebApp.sendData(JSON.stringify({
+                type: 'wallet_connected',
+                wallet: parts[1]
+              }));
+              return;
+            } catch (err) {
+              console.error('Error connecting to Phantom:', err);
+            }
+          }
+        }
+      }
+
+      // Check for phantom_response if no startapp param
       const phantomResponse = urlParams.get('phantom_response');
       const state = urlParams.get('state');
 
@@ -192,7 +217,7 @@ const PhantomWalletConnect = () => {
               Connecting...
             </>
           ) : (
-            'Connect Phantom Wallet 6'
+            'Connect Phantom Wallet 7'
           )}
         </button>
       ) : (

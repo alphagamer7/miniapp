@@ -23,6 +23,7 @@ const PhantomWalletConnect = () => {
       
       if (startParam) {
         const parts = startParam.split('_');
+        alert("parts")
         if (parts[0] === 'w' && parts[1]) {
           const provider = getProvider();
           if (provider) {

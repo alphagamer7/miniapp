@@ -1,4 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
+
+/// BEFORE STRUCT
 //   pub struct Game {
 //     pub id: [u8; 26],
 //     pub max_active_rounds: u8,
@@ -10,51 +12,122 @@ import { PublicKey } from "@solana/web3.js";
 //     pub bump: u8,         
 // }
 
-// data: Buffer
 
+
+// export const decodeGameData = (data) => {
+//     let offset = 8;
+//     const id = new TextDecoder().decode(data.slice(offset, 26)); // ULID (26 bytes)
+//     offset += 26;
+//     const maxActiveRounds = data[offset]; // u8
+//     offset += 1;
+//     const maxCompletedRounds = data[offset]; // u8
+
+//     // Active rounds
+//     offset += 1
+//     const activeRoundsLength = new DataView(data.buffer).getUint32(offset, true); // u32 length prefix
+//     offset += 4; // Start after length prefix
+//     const activeRounds = [];
+//     for (let i = 0; i < activeRoundsLength; i++) {
+//       const roundId = new TextDecoder().decode(data.slice(offset, offset + 26));
+//       activeRounds.push(roundId);
+//       offset += 26; // Move to next round
+//     }
+
+//     // Completed rounds
+//     const completedRoundsLength = new DataView(data.buffer).getUint32(offset, true); // u32 length prefix
+//     offset += 4;
+//     const completedRounds = [];
+//     for (let i = 0; i < completedRoundsLength; i++) {
+//       const roundId = new TextDecoder().decode(data.slice(offset, offset + 26));
+//       completedRounds.push(roundId);
+//       offset += 26; // Move to next round
+//     }
+
+//     // Operator (32 bytes)
+//     const operator = new PublicKey(data.slice(offset, offset + 32)).toBase58();
+//     offset += 32;
+
+//     // Token Mint (32 bytes)
+//     const tokenMint = new PublicKey(data.slice(offset, offset + 32)).toBase58();
+//     offset += 32;
+
+//     // Bump (u8)
+//     const bump = data[offset];
+
+//     return {
+//       id,
+//       maxActiveRounds,
+//       maxCompletedRounds,
+//       activeRounds,
+//       completedRounds,
+//       operator,
+//       tokenMint,
+//       bump,
+//     };
+//   };
+
+
+
+
+/// AFTER STRUCT
+// pub struct Game {
+//   pub id: u64,
+//   pub max_active_rounds: u8,
+//   pub max_completed_rounds: u8,
+//   pub active_rounds: Vec<u64>,      // storage ulid  
+//   pub completed_rounds: Vec<u64>,
+//   pub operator: Pubkey,
+//   pub token_mint: Pubkey,
+//   pub bump: u8,         
+// }
 
 export const decodeGameData = (data) => {
-    let offset = 8;
-    const id = new TextDecoder().decode(data.slice(offset, 26)); // ULID (26 bytes)
-    offset += 26;
-    const maxActiveRounds = data[offset]; // u8
-    offset += 1;
-    const maxCompletedRounds = data[offset]; // u8
+  try {
+    let offset = 8; // Skip discriminator
 
-    // Active rounds
-    offset += 1
-    const activeRoundsLength = new DataView(data.buffer).getUint32(offset, true); // u32 length prefix
-    offset += 4; // Start after length prefix
-    const activeRounds = [];
-    for (let i = 0; i < activeRoundsLength; i++) {
-      const roundId = new TextDecoder().decode(data.slice(offset, offset + 26));
-      activeRounds.push(roundId);
-      offset += 26; // Move to next round
-    }
+  // ID (u64 = 8 bytes)
+  const id = new DataView(data.buffer).getBigInt64(offset, true);
+  offset += 8;
 
-    // Completed rounds
-    const completedRoundsLength = new DataView(data.buffer).getUint32(offset, true); // u32 length prefix
-    offset += 4;
-    const completedRounds = [];
-    for (let i = 0; i < completedRoundsLength; i++) {
-      const roundId = new TextDecoder().decode(data.slice(offset, offset + 26));
-      completedRounds.push(roundId);
-      offset += 26; // Move to next round
-    }
+  // Max Active & Completed Rounds (u8)
+  const maxActiveRounds = data[offset];
+  offset += 1;
+  const maxCompletedRounds = data[offset];
+  offset += 1;
 
-    // Operator (32 bytes)
-    const operator = new PublicKey(data.slice(offset, offset + 32)).toBase58();
-    offset += 32;
+  // Active rounds (Vec<u64>)
+  const activeRoundsLength = new DataView(data.buffer).getUint32(offset, true);
+  offset += 4;
+  const activeRounds = [];
+  for (let i = 0; i < activeRoundsLength; i++) {
+      const roundId = new DataView(data.buffer).getBigUint64(offset, true);
+      activeRounds.push(roundId.toString()); // Convert BigInt to string for easier handling
+      offset += 8; // u64 is 8 bytes
+  }
 
-    // Token Mint (32 bytes)
-    const tokenMint = new PublicKey(data.slice(offset, offset + 32)).toBase58();
-    offset += 32;
+  // Completed rounds (Vec<u64>)
+  const completedRoundsLength = new DataView(data.buffer).getUint32(offset, true);
+  offset += 4;
+  const completedRounds = [];
+  for (let i = 0; i < completedRoundsLength; i++) {
+      const roundId = new DataView(data.buffer).getBigUint64(offset, true);
+      completedRounds.push(roundId.toString()); // Convert BigInt to string for easier handling
+      offset += 8; // u64 is 8 bytes
+  }
 
-    // Bump (u8)
-    const bump = data[offset];
+  // Operator pubkey (32 bytes)
+  const operator = new PublicKey(data.slice(offset, offset + 32)).toBase58();
+  offset += 32;
 
-    return {
-      id,
+  // Token mint pubkey (32 bytes)
+  const tokenMint = new PublicKey(data.slice(offset, offset + 32)).toBase58();
+  offset += 32;
+
+  // Bump (u8)
+  const bump = data[offset];
+
+  return {
+      id: id.toString(), // Convert BigInt to string
       maxActiveRounds,
       maxCompletedRounds,
       activeRounds,
@@ -62,5 +135,10 @@ export const decodeGameData = (data) => {
       operator,
       tokenMint,
       bump,
-    };
   };
+  }catch(e){
+    console.error(`Failed to decode game data: ${e.message}`);
+    throw new Error(`Failed to decode game data: ${e.message}`);
+  }  
+  
+};

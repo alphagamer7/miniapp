@@ -20,19 +20,23 @@ export function IndexPage() {
     padding: '4px'
   };
   const disconnectWallet = async () => {
-    try {
-      const provider = window.solana;
+    localStorage.removeItem('connected');
+    localStorage.removeItem('publicKey');
+   
+    navigate('/');
+    // try {
+    //   const provider = window.solana;
       
-      if (provider && provider.isPhantom) {
-        await provider.disconnect();
-        localStorage.removeItem('connected');
-        localStorage.removeItem('publicKey');
+    //   if (provider && provider.isPhantom) {
+    //     await provider.disconnect();
+    //     localStorage.removeItem('connected');
+    //     localStorage.removeItem('publicKey');
        
-        navigate('/');
-      }
-    } catch (error) {
-      console.error('Error disconnecting wallet:', error);
-    }
+    //     navigate('/');
+    //   }
+    // } catch (error) {
+    //   console.error('Error disconnecting wallet:', error);
+    // }
   };
   return (
     <div className="min-h-screen bg-purple-900">
@@ -70,10 +74,15 @@ export function IndexPage() {
         {/* <Link to="/round-list">
           <Cell subtitle="Telegram application palette information"   style={{ backgroundColor: '#5a178b',color:'white' }}>Round List</Cell>
         </Link> */}
-         {/* <Link onClick={ disconnectWallet}>
-          <Cell subtitle="Telegram application palette information"    style={{ backgroundColor: '#5a178b',color:'white' }}> Disconnect Wallet  </Cell>
+         {/* <Link >
+          <Cell subtitle="Telegram application palette information"    style={{ backgroundColor: '#5a178b',color:'white' }} onClick={ disconnectWallet}> Disconnect Wallet  </Cell>
         </Link> */}
-        
+    
+        <div onClick={disconnectWallet}>
+        <Cell subtitle="Disconnect from wallet" style={{ backgroundColor: '#5a178b',color:'white' }}>
+          Disconnect Wallet
+        </Cell>
+      </div>
       </Section>
     </List>
     </div>

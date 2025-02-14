@@ -10,10 +10,23 @@ export const  BottomNavBar = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-purple-800 flex justify-around py-3">
       <button 
-        onClick={() => navigate('/')}
+        // onClick={() => navigate('/')}
+        onClick={() => navigate('/round-list')}
         className={`p-2 rounded-lg ${currentPath === '/' ? 'bg-purple-700' : ''}`}
       >
         <Home className={`w-6 h-6 ${currentPath === '/' ? 'text-white' : 'text-gray-400'}`} />
+      </button>
+      <button 
+        onClick={() => navigate('/player-info')}
+        className={`p-2 rounded-lg ${currentPath === '/player-info' ? 'bg-purple-700' : ''}`}
+      >
+        <Diamond className={`w-6 h-6 ${currentPath === '/player-info' ? 'text-white' : 'text-gray-400'}`} />
+      </button>
+      <button 
+        onClick={() => navigate('/my-assets')}
+        className={`p-2 rounded-lg ${currentPath === '/my-assets' ? 'bg-purple-700' : ''}`}
+      >
+        <Crown className={`w-6 h-6 ${currentPath === '/my-assets' ? 'text-white' : 'text-gray-400'}`} />
       </button>
       <button 
         onClick={() => navigate('/user-data')}

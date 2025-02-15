@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import nacl from "tweetnacl";
 import bs58 from "bs58";
+// import { PublicKey } from '@solana/web3.js';
 
 const PhantomWalletConnect = () => {
   const [walletAddress, setWalletAddress] = useState('');
@@ -15,6 +16,9 @@ const PhantomWalletConnect = () => {
   const REDIRECT_BASE_URL = 'https://thealphanova.com';
 
   useEffect(() => {
+    // let a = new PublicKey('JdHqGbgSHEWqtFQEHYKxH8AtPNBA4XVhm49EzUDD6sj5hz4UtUtj3wj9bo9dyY1JbdiJYGpG5eSt4G8q2wZvqopYKM1aYGEvKCwxkn5Jg9VudJB48M7YWvTPUyqMszC7VdXPU1ZdrtLmQzpPbCZYhLqGcc3CVXMcL4pyizNiP1L5Qk4P2CiF3BXM3VX1RurpwYwgA9AqJpWkhUh9YDynPXdnehZfeNRkEYjSNQDSnWTQkMg2DHP3jj5HtKgWoupBXAuYd3k1QhGvbYLkhT1QyTm2e53BS1v9fBDcHvWAo2i5kjrJ4SoQhSERfQpDZM8fqjS2YM69Ki8cqUHHMn6zUkPr3fRapBhBHQNH7EmGagX5aHa1g8N2J3oEJA33dGXPxUXJJMv3cPFCfSihNCB6gr5BmpPf3ANi11aF52Jkd3Yav2D')
+    // console.log(a.toBåase58());
+    // console.log(a);
     // Check if returning from Phantom connection
     const checkPhantomReturn = async () => {
       // First check URL for startapp parameter

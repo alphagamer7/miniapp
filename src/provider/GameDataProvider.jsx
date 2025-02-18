@@ -3,6 +3,7 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 import { Connection, PublicKey,clusterApiUrl } from "@solana/web3.js";
 import { decodeGameData } from "@/types/GameDecoder";
 import {AccountDecoder} from "@/hook/UseMultiAccountSubscription"
+import { decodeRoundData } from "@/types/RoundDecoder";
 
 // Creating a context object.
 const GameDataContext = createContext(null);
@@ -15,6 +16,8 @@ export const GameDataProvider = ({ children }) => {
   const [gameData, setGameData] = useState(null); // State to store the game data.
   const [error, setError] = useState(null); // State to handle any errors.
   const [connection, setConnection] = useState(null); // State to manage the Solana connection.
+  const [roundsData, setRoundsData] = useState([]);
+  const [subscriptions, setSubscriptions] = useState(new Map());
 
   // const NETWORK_URL = "https://api.devnet.solana.com"; // Network URL for Solana connection.
   const NETWORK_URL = "https://api.devnet.solana.com"; // Network URL for Solana connection.
@@ -22,6 +25,7 @@ export const GameDataProvider = ({ children }) => {
 
   const GAME_ID = "1738688341478"; // Identifier for the game.
   const GAME_SEED_PREFIX = "game"; // Prefix used to derive the PDA.
+  const ROUND_SEED_PREFIX = "round";
 
 // Function to derive the Program Derived Address (PDA) based on game ID and program.
 const deriveGamePDA = async () => {
@@ -34,6 +38,66 @@ const deriveGamePDA = async () => {
     programId
   );
   return gamePDA;
+};
+const deriveRoundPDA = async (roundId) => {
+  try {
+    const programId = new PublicKey(PROGRAM_ID);
+    const roundIdNumber = parseInt(roundId, 10);
+    const roundIdBytes = numberToLeBytes(roundIdNumber);
+    const roundBytes = new TextEncoder().encode(ROUND_SEED_PREFIX);
+
+    const [roundPDA] = await PublicKey.findProgramAddress(
+      [roundBytes, roundIdBytes],
+      programId
+    );
+    return roundPDA;
+  } catch (err) {
+    console.error('Error deriving Round PDA:', err);
+    throw err;
+  }
+};
+const fetchRoundData = async (roundId) => {
+  try {
+    const roundPDA = await deriveRoundPDA(roundId);
+    const accountInfo = await connection.getAccountInfo(roundPDA);
+    
+    if (!accountInfo) {
+      console.error(`No account found for round ${roundId}`);
+      return null;
+    }
+
+    // Set up subscription for this round if it doesn't exist
+    if (!subscriptions.has(roundId)) {
+      const subscriptionId = await AccountDecoder.setupRoundSubscription(
+        connection,
+        roundPDA,
+        (updatedRoundData) => {
+          console.log(`Round Data Updated ${JSON.stringify(updatedRoundData)}`)
+          setRoundsData(prevRounds => {
+            return prevRounds.map(round => {
+              if (round.id === roundId) {
+                return { ...updatedRoundData, id: roundId };
+              }
+              return round;
+            });
+          });
+        }
+      );
+
+      if (subscriptionId) {
+        setSubscriptions(prev => new Map(prev).set(roundId, subscriptionId));
+      }
+    }
+
+    const decodedData = decodeRoundData(accountInfo.data);
+    return {
+      ...decodedData,
+      id: roundId
+    };
+  } catch (err) {
+    console.error(`Error fetching round ${roundId} data:`, err);
+    return null;
+  }
 };
 
 const numberToLeBytes = (num) => {
@@ -72,49 +136,65 @@ const numberToLeBytes = (num) => {
       setError('Failed to connect to the network.');
     }
   }, [NETWORK_URL]);
-  useEffect(() => {
-    let subscriptionId = null;
-
-    const setupGameSubscription = async () => {
-      if (!connection) return;
-
-      try {
-        // Get the game PDA
-        const pda = await deriveGamePDA();
-       
-
-        // Use AccountDecoder to set up subscription
-        subscriptionId = await AccountDecoder.setupGameSubscription(
-          connection,
-          pda,
-          (decodedData) => {
-            console.log("Game data updated:", decodedData);
-            setGameData(decodedData);
+    // Set up game data subscription
+    useEffect(() => {
+      let gameSubscriptionId = null;
+  
+      const setupGameSubscription = async () => {
+        if (!connection) return;
+  
+        try {
+          const pda = await deriveGamePDA();
+          gameSubscriptionId = await AccountDecoder.setupGameSubscription(
+            connection,
+            pda,
+            async (decodedGameData) => {
+              console.log("Game data updated:", decodedGameData);
+              setGameData(decodedGameData);
+              
+              // Fetch rounds data when game data updates
+              if (decodedGameData.activeRounds) {
+                const allRoundsData = await Promise.all(
+                  decodedGameData.activeRounds.map(roundId => fetchRoundData(roundId))
+                );
+                const validRoundsData = allRoundsData.filter(data => data !== null);
+                setRoundsData(validRoundsData);
+              }
+            }
+          );
+        } catch (err) {
+          console.error('Error setting up game subscription:', err);
+          setError('Failed to subscribe to game updates');
+        }
+      };
+  
+      setupGameSubscription();
+  
+      return () => {
+        // Cleanup all subscriptions on unmount
+        if (connection) {
+          if (gameSubscriptionId) {
+            connection.removeAccountChangeListener(gameSubscriptionId);
           }
-        );
-
-        console.log('Game subscription established with ID:', subscriptionId);
-      } catch (err) {
-        console.error('Error setting up game subscription:', err);
-        setError('Failed to subscribe to game updates');
-      }
-    };
-
-    setupGameSubscription();
-
-    // Cleanup subscription
-    return () => {
-      if (subscriptionId && connection) {
-        console.log('Cleaning up game subscription');
-        connection.removeAccountChangeListener(subscriptionId);
-      }
-    };
-  }, [connection]);
+          subscriptions.forEach((subscriptionId) => {
+            connection.removeAccountChangeListener(subscriptionId);
+          });
+        }
+      };
+    }, [connection]);
 
 
   // Providing the context value to children components.
   return (
-    <GameDataContext.Provider value={{ gameData, error, connection }}>
+    <GameDataContext.Provider value={{ gameData,  roundsData,  error, connection ,  refreshRounds: async () => {
+      if (gameData?.activeRounds) {
+        const allRoundsData = await Promise.all(
+          gameData.activeRounds.map(roundId => fetchRoundData(roundId))
+        );
+        const validRoundsData = allRoundsData.filter(data => data !== null);
+        setRoundsData(validRoundsData);
+      }
+    }}}>
       {children}
     </GameDataContext.Provider>
   );

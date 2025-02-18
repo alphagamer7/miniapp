@@ -42,7 +42,7 @@ export class AccountDecoder {
             }
           }
         },
-        'confirmed'
+        'finalized'
       );
 
       // Set initial balance
@@ -71,9 +71,11 @@ export class AccountDecoder {
         roundAccount,
         async (updatedAccountInfo) => {
           const decodedData = decodeRoundData(updatedAccountInfo.data);
+
+         
           onRoundUpdate(decodedData);
         },
-        'confirmed'
+        'finalized'
       );
 
       // Get initial state
@@ -101,7 +103,7 @@ export class AccountDecoder {
           const decodedData = decodeGameData(updatedAccountInfo.data);
           onGameUpdate(decodedData);
         },
-        'confirmed'
+        'finalized'
       );
 
       // Get initial state
@@ -129,7 +131,7 @@ export class AccountDecoder {
           const decodedData = decodePlayerData(updatedAccountInfo.data);
           onPlayerUpdate(decodedData);
         },
-        'confirmed'
+        'finalized'
       );
 
       // Get initial state

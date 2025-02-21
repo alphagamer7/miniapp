@@ -101,6 +101,7 @@ export function MyAssetsPage() {
             }
 
             const publicKey = new PublicKey(pubKeyStr);
+            console.log(`Pub key ${publicKey}`)
 
             // Get SOL balance
             const balanceInLamports = await connection.getBalance(publicKey);

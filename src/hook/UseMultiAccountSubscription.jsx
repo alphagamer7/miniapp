@@ -147,9 +147,40 @@ export class AccountDecoder {
       return null;
     }
   }
+
+  static subscribeToSignature(connection, signature) {
+    return new Promise((resolve, reject) => {
+      try {
+        const config = {
+          commitment: 'finalized',
+          enableReceivedNotification: false
+        };
+  
+        const subscriptionId = connection.onSignature(
+          signature,
+          (result, context) => {
+            console.log('Received notification:');
+            console.log('Slot:', context.slot);
+            console.log('Result:', JSON.stringify(result, null, 2));
+            
+            // Clean up the subscription
+            connection.removeSignatureListener(subscriptionId);
+            
+            // Resolve with both the slot and result
+            resolve({ slot: context.slot, result });
+          },
+          config.commitment
+        );
+  
+        console.log('Subscription ID:', subscriptionId);
+      } catch (error) {
+        console.error('Subscription failed:', error);
+        reject(error);
+      }
+    });
+  }
 }
 
-// const setupTokenSubscription = async (connection) => {
 //   try {
 //     const pubKeyStr = localStorage.getItem("publicKey");
 //     if (!pubKeyStr) {

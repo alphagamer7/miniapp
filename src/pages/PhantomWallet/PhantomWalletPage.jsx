@@ -218,7 +218,7 @@ const PhantomWalletConnect = () => {
           onClick={connectWallet}
           disabled={isLoading}
           className={`
-            bg-purple-500 hover:bg-purple-600 text-white 
+            bg-blue-500 hover:bg-blue-600 text-white 
             text-sm py-2 px-4 rounded-lg
             flex items-center gap-2
             ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
@@ -230,7 +230,7 @@ const PhantomWalletConnect = () => {
               Connecting...
             </>
           ) : (
-            'Connect Phantom Wallet v12'
+            'Connect Phantom Wallet v1'
           )}
         </button>
       ) : (

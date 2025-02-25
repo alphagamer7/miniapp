@@ -9,6 +9,10 @@ import { DisplayData } from '@/components/DisplayData/DisplayData';
 import LoginScreen from '@/pages/LoginPage/LoginPage';
 import { MyAssetsPage } from '@/pages/MyAssetsPage/MyAssetsPage';
 import { PlayerInfoPage } from '@/pages/PlayerInfo';
+import HomePage from '@/pages/HomePage/HomePage';
+import RoundList from '@/pages/RoundListPage/RoundListPage2';
+import RoundDetailPage from '@/pages/RoundDetailPage/RoundDetailPage';
+import TurnPage from '@/pages/TurnPage/TurnPage';
 
 /**
  * @typedef {object} Route
@@ -23,6 +27,9 @@ import { PlayerInfoPage } from '@/pages/PlayerInfo';
  */
 export const routes = [
   { path: '/', Component: LoginScreen },
+  { path: '/home', Component: HomePage },
+  { path: '/round-list1', Component: RoundList },
+  { path: '/round-detail/:roundId', Component: RoundDetailPage },
   { path: '/user-data', Component: IndexPage },
   { path: '/init-data', Component: InitDataPage, title: 'Init Data' },
   { path: '/theme-params', Component: ThemeParamsPage, title: 'Theme Params' },
@@ -31,6 +38,7 @@ export const routes = [
   { path: '/round-list', Component: RoundListPage, title: 'Round List' },
   { path: '/my-assets', Component: MyAssetsPage, title: 'My Assets' },
   { path: '/player-info', Component: PlayerInfoPage, title: 'My Assets' },
+  { path: '/turn-page/:roundId', Component: TurnPage, title: 'My Assets' },
   
   // { path: '/', Component: RoundListPage, title: 'Display Data' },
   // {

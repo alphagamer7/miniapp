@@ -62,7 +62,7 @@ export function App() {
           {routes.map((route) => <Route key={route.path} {...route} />)}
           <Route path='*' element={<Navigate to='/'/>}/>
         </Routes>
-        <NavigationHandler />
+        {/* <NavigationHandler /> */}
       </BrowserRouter>
     </AppRoot>
   );

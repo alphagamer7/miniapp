@@ -53,7 +53,7 @@ const LoginScreen = () => {
       localStorage.setItem('connected', 'true');
       localStorage.setItem('publicKey', publicKey.toString());
       setIsConnected(true);
-      navigate('/round-list');
+      navigate('/home');
     } catch (error) {
       console.error('Error connecting to wallet:', error);
     }

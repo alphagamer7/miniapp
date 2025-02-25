@@ -16,78 +16,6 @@ const PhantomWalletConnect = () => {
   const REDIRECT_BASE_URL = 'https://thealphanova.com';
 
   useEffect(() => {
-    // let a = new PublicKey('JdHqGbgSHEWqtFQEHYKxH8AtPNBA4XVhm49EzUDD6sj5hz4UtUtj3wj9bo9dyY1JbdiJYGpG5eSt4G8q2wZvqopYKM1aYGEvKCwxkn5Jg9VudJB48M7YWvTPUyqMszC7VdXPU1ZdrtLmQzpPbCZYhLqGcc3CVXMcL4pyizNiP1L5Qk4P2CiF3BXM3VX1RurpwYwgA9AqJpWkhUh9YDynPXdnehZfeNRkEYjSNQDSnWTQkMg2DHP3jj5HtKgWoupBXAuYd3k1QhGvbYLkhT1QyTm2e53BS1v9fBDcHvWAo2i5kjrJ4SoQhSERfQpDZM8fqjS2YM69Ki8cqUHHMn6zUkPr3fRapBhBHQNH7EmGagX5aHa1g8N2J3oEJA33dGXPxUXJJMv3cPFCfSihNCB6gr5BmpPf3ANi11aF52Jkd3Yav2D')
-    // console.log(a.toBåase58());
-    // console.log(a);
-    // Check if returning from Phantom connection
-    const checkPhantomReturn = async () => {
-      // First check URL for startapp parameter
-      const startParam = WebApp.initDataUnsafe.start_param || 
-                        new URLSearchParams(window.location.search).get('startapp');
-      alert(startParam)
-      if (startParam && /^[\w-]{0,512}$/.test(startParam)) {
-        const parts = startParam.split('_');
-        if (parts[0] === 'w' && parts[1] && parts[2] === 'u' && parts[4] === 's') {
-          const walletAddress = parts[1];
-          alert(walletAddress);
-          const userId = parts[3];
-          const sessionId = parts[5];
-          const provider = getProvider();
-          if (provider) {
-            try {
-              await provider.connect();
-              setWalletAddress(walletAddress);
-              localStorage.setItem('phantomWallet', JSON.stringify({
-                wallet: walletAddress,
-                userId: userId,
-                session: sessionId
-              }));
-              
-              WebApp.sendData(JSON.stringify({
-                type: 'wallet_connected',
-                wallet: parts[1]
-              }));
-              alert("wallet connected")
-              return;
-            } catch (err) {
-              console.error('Error connecting to Phantom:', err);
-            }
-          }
-        }
-      }
-
-      // Check for phantom_response if no startapp param
-      const phantomResponse = urlParams.get('phantom_response');
-      const state = urlParams.get('state');
-
-      if (phantomResponse && state) {
-        try {
-          const response = JSON.parse(decodeURIComponent(phantomResponse));
-          const decodedState = decodeURIComponent(state);
-
-          // Verify state matches our telegram data
-          if (decodedState === WebApp.initData) {
-            if (response.public_key) {
-              setWalletAddress(response.public_key);
-              localStorage.setItem('phantomWallet', response.public_key);
-              
-              // Notify the Telegram Mini App
-              WebApp.sendData(JSON.stringify({
-                type: 'wallet_connected',
-                wallet: response.public_key
-              }));
-            }
-          }
-        } catch (error) {
-          setError('Error processing wallet connection');
-          WebApp.sendData(JSON.stringify({
-            type: 'wallet_connection_error',
-            error: error.message
-          }));
-        }
-      }
-    };
-
     // Check device type
     const checkMobile = () => {
       const userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -98,7 +26,12 @@ const PhantomWalletConnect = () => {
     const loadSavedWallet = () => {
       const savedWallet = localStorage.getItem('phantomWallet');
       if (savedWallet) {
-        setWalletAddress(savedWallet);
+        try {
+          const walletData = JSON.parse(savedWallet);
+          setWalletAddress(walletData.wallet);
+        } catch (e) {
+          setWalletAddress(savedWallet);
+        }
       }
     };
 
@@ -106,6 +39,197 @@ const PhantomWalletConnect = () => {
     loadSavedWallet();
     checkPhantomReturn();
   }, []);
+
+  // Function to decrypt Phantom data (copied from HTML file)
+  const decryptPhantomData = (encryptedData, phantomPublicKey, nonce, secretKey) => {
+    try {
+      console.log("Starting decryption process...");
+      
+      // Decode the base58 strings
+      console.log("Decoding phantom public key:", phantomPublicKey);
+      const phantomPublicKeyBytes = bs58.decode(phantomPublicKey);
+      console.log("Public key bytes:", Array.from(phantomPublicKeyBytes));
+      
+      console.log("Decoding nonce:", nonce);
+      const nonceBytes = bs58.decode(nonce);
+      console.log("Nonce bytes:", Array.from(nonceBytes));
+      
+      console.log("Decoding encrypted data (first 10 chars):", encryptedData.substring(0, 10) + "...");
+      const ciphertextBytes = bs58.decode(encryptedData);
+      console.log("Encrypted data length:", ciphertextBytes.length);
+      
+      // Create the shared secret
+      console.log("Creating shared secret...");
+      const sharedSecret = nacl.box.before(phantomPublicKeyBytes, secretKey);
+      console.log("Shared secret created:", !!sharedSecret);
+      
+      // Decrypt the message
+      console.log("Attempting to decrypt...");
+      const decryptedBytes = nacl.box.open.after(ciphertextBytes, nonceBytes, sharedSecret);
+      
+      if (!decryptedBytes) {
+        throw new Error('Failed to decrypt - invalid key or corrupted data');
+      }
+      
+      console.log("Decryption successful!");
+      
+      // Convert decrypted bytes to UTF-8 string
+      const decryptedString = new TextDecoder().decode(decryptedBytes);
+      console.log("Decrypted string (first 50 chars):", decryptedString.substring(0, 50) + "...");
+      
+      // Parse the JSON string
+      const result = JSON.parse(decryptedString);
+      console.log("JSON parsed successfully:", result);
+      return result;
+    } catch (error) {
+      console.error('Error decrypting Phantom data:', error);
+      throw error;
+    }
+  };
+
+  const checkPhantomReturn = async () => {
+    // First check URL for startapp parameter
+    const startParam = WebApp.initDataUnsafe.start_param || 
+                      new URLSearchParams(window.location.search).get('startapp');
+    
+    console.log("Received startParam:", startParam);
+    
+    if (startParam && startParam.length > 0) {
+      try {
+        
+        // If not the old format, try the new format: "[encrypted]_[pubkey]_[nonce]"
+        const dataParts = startParam.split('_');
+        if (dataParts.length === 3) {
+          const encryptedData = dataParts[0];
+          const publicKey = dataParts[1];
+          const nonce = dataParts[2];
+          
+          console.log("Received encrypted data parts:");
+          console.log("- Encrypted data:", encryptedData.substring(0, 20) + "...");
+          console.log("- Public key:", publicKey);
+          console.log("- Nonce:", nonce);
+          
+          // Store the data for later decryption or use
+          localStorage.setItem('phantom_encrypted_data', encryptedData);
+          localStorage.setItem('phantom_public_key', publicKey); 
+          localStorage.setItem('phantom_nonce', nonce);
+          
+          // Try to decrypt if we have a secret key
+          try {
+            // Retrieve the secret key we stored during connection
+
+            const secretKeyBase58 = localStorage.getItem('phantom_connection_secret_key');
+            if (secretKeyBase58) {
+              const secretKey = bs58.decode(secretKeyBase58);
+              
+              // Decrypt the data
+              const decryptedData = decryptPhantomData(encryptedData, publicKey, nonce, secretKey);
+              
+              // Use the decrypted public key from the Phantom response
+              if (decryptedData && decryptedData.public_key) {
+                console.log("Successfully decrypted wallet data:", decryptedData);
+                alert("Successfully decrypted wallet data: " + JSON.stringify(decryptedData));
+                localStorage.setItem("publicKey", decryptedData.public_key);
+                // handleWalletConnection(decryptedData.public_key, "decrypted", decryptedData.session || "");
+                return;
+              }
+            } else {
+              console.warn("No secret key found in session storage for decryption");
+            }
+          } catch (decryptError) {
+            console.error("Failed to decrypt data:", decryptError);
+            // Fall back to using the public key as the wallet address
+          }
+          
+          // If decryption failed or wasn't possible, use the public key as the wallet address
+          handleWalletConnection(publicKey, "from_encrypted", nonce);
+          return;
+        }
+        
+        // If we reached here, the format is unknown
+        console.warn("Unknown startParam format:", startParam);
+        setError("Received wallet data in an unknown format");
+      } catch (err) {
+        console.error("Error parsing startParam:", err);
+        setError("Error parsing wallet connection data: " + err.message);
+      }
+    }
+    
+    // Check localStorage as fallback (in case the data was stored there)
+    const encryptedData = localStorage.getItem('phantom_encrypted_data');
+    const publicKey = localStorage.getItem('phantom_public_key');
+    const nonce = localStorage.getItem('phantom_nonce');
+    
+    if (encryptedData && publicKey && nonce) {
+      console.log("Using data from localStorage");
+      
+      // Try to decrypt if we have a secret key
+      try {
+        const secretKeyBase58 = sessionStorage.getItem('phantom_connection_secret_key');
+        if (secretKeyBase58) {
+          const secretKey = bs58.decode(secretKeyBase58);
+          
+          // Decrypt the data
+          const decryptedData = decryptPhantomData(encryptedData, publicKey, nonce, secretKey);
+          
+          // Use the decrypted public key from the Phantom response
+          if (decryptedData && decryptedData.public_key) {
+            console.log("Successfully decrypted wallet data from localStorage:", decryptedData);
+            handleWalletConnection(decryptedData.public_key, "decrypted_storage", decryptedData.session || "");
+            return;
+          }
+        }
+      } catch (decryptError) {
+        console.error("Failed to decrypt localStorage data:", decryptError);
+      }
+      
+      // Fallback to using stored public key if decryption fails
+      handleWalletConnection(publicKey, "from_storage", nonce);
+      return;
+    }
+    
+    // Rest of your existing code for other connection methods
+    // Check for phantom_response if no startapp param
+    const urlParams = new URLSearchParams(window.location.search);
+    const phantomResponse = urlParams.get('phantom_response');
+    const state = urlParams.get('state');
+  
+    if (phantomResponse && state) {
+      try {
+        const response = JSON.parse(decodeURIComponent(phantomResponse));
+        const decodedState = decodeURIComponent(state);
+  
+        // Verify state matches our telegram data
+        if (decodedState === WebApp.initData) {
+          if (response.public_key) {
+            handleWalletConnection(response.public_key, "direct_connect", "");
+          }
+        }
+      } catch (error) {
+        setError('Error processing wallet connection');
+        WebApp.sendData(JSON.stringify({
+          type: 'wallet_connection_error',
+          error: error.message
+        }));
+      }
+    }
+  };
+  
+  // Helper function to handle wallet connection
+  const handleWalletConnection = (walletAddress, userId, sessionId) => {
+    setWalletAddress(walletAddress);
+    localStorage.setItem('phantomWallet', JSON.stringify({
+      wallet: walletAddress,
+      userId: userId,
+      session: sessionId
+    }));
+    
+    WebApp.sendData(JSON.stringify({
+      type: 'wallet_connected',
+      wallet: walletAddress
+    }));
+    console.log("Wallet connected:", walletAddress);
+  };
 
   const getProvider = () => {
     if ('phantom' in window) {
@@ -123,6 +247,11 @@ const PhantomWalletConnect = () => {
     // Create the redirect URL with proper parameters
     const redirectUrl = `${REDIRECT_BASE_URL}/phantom-callback.html`;
     const telegramData = encodeURIComponent(WebApp.initData);
+
+    const secretKeyBase58 = bs58.encode(dappKeyPair.secretKey);
+    localStorage.setItem('phantom_connection_secret_key', secretKeyBase58);
+    console.log('secretKeyBase58:', secretKeyBase58);
+    console.log('public key:', bs58.encode(dappKeyPair.publicKey));
     
     const params = new URLSearchParams({
       app_url: 'https://thealphanova.com/',
@@ -230,7 +359,7 @@ const PhantomWalletConnect = () => {
               Connecting...
             </>
           ) : (
-            'Connect Phantom Wallet v1'
+            'Connect Phantom Wallet v6'
           )}
         </button>
       ) : (

@@ -26,7 +26,7 @@ import TurnPage from '@/pages/TurnPage/TurnPage';
  * @type {Route[]}
  */
 export const routes = [
-  { path: '/', Component: LoginScreen },
+  { path: '/', Component: HomePage },
   { path: '/home', Component: HomePage },
   { path: '/round-list1', Component: RoundList },
   { path: '/round-detail/:roundId', Component: RoundDetailPage },

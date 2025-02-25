@@ -6,6 +6,8 @@ import {RoundCard} from '@/components/RoundCard';
 import {UserProfileCard} from '@/components/UserProfileCard';
 import {UserProfileCard1} from '@/components/UserProfileCard1';
 import {Header} from '@/components/Header';
+import PhantomWalletConnect from '../PhantomWallet/PhantomWalletPage';
+
 const HomePage = () => {
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
@@ -33,7 +35,9 @@ const HomePage = () => {
           <UserProfileCard />
       </div>
 
-     
+      <div className="p-4">
+       <PhantomWalletConnect />
+      </div>
 
       {/* Spacer to push content to bottom */}
       <div className="flex-1"></div>

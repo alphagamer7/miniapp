@@ -6,7 +6,7 @@ import { decodeRoundData } from "@/types/RoundDecoder";
 import { decodePlayerData } from "@/types/PlayerDecoder";
 import { PublicKey,SystemProgram, Transaction, TransactionInstruction } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
-import { Buffer } from 'buffer';
+// import { Buffer } from 'buffer';
 
 export function PlayerInfoPage() {
     const [playerData, setPlayerData] = useState(null);

@@ -6,7 +6,7 @@ import React, { useEffect, useState } from "react";
 import { useGameData } from '@/provider/GameDataProvider';
 import { AccountDecoder } from '@/hook/UseMultiAccountSubscription'; // Add this import
 import { PublicKey } from "@solana/web3.js";
-import { Buffer } from 'buffer';
+// import { Buffer } from 'buffer';
 import { getTokenMetadata } from "@solana/spl-token";
 
 export function MyAssetsPage() {

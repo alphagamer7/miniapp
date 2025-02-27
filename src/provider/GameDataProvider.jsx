@@ -24,6 +24,7 @@ export const GameDataProvider = ({ children }) => {
   const PROGRAM_ID = "3fNocwdPfKwywpS7E7GUGkPDBDhXJ9xsdDmNb4m7TKXr"; // Public key of the deployed Solana program.
 
   const GAME_ID = "1738688341478"; // Identifier for the game.
+  // const GAME_ID = "1740356349542"; // Identifier for the game.
   const GAME_SEED_PREFIX = "game"; // Prefix used to derive the PDA.
   const ROUND_SEED_PREFIX = "round";
 

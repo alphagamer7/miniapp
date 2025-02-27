@@ -1,40 +1,79 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, Trophy } from 'lucide-react';
+import { useGameData } from '@/provider/GameDataProvider';
+import WebApp from '@twa-dev/sdk';
+import { useNavigate } from 'react-router-dom';
 
 const TurnPage = () => {
-  // Function to get URL parameters
-  const getUrlParameter = (name) => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(name);
-  };
+  const navigate = useNavigate();
+  // Get round ID from URL
+  const roundId = window.location.pathname.split('/').pop();
   
-  // Get parameters from URL with defaults
-  const totalPlayers = parseInt(getUrlParameter('players')) || 50;
-  const maxTurns = parseInt(getUrlParameter('maxTurns')) || 5;
-  const maxEliminated = parseInt(getUrlParameter('maxEliminated')) || 10;
-
-  // Generate players based on URL parameter
-  const generatePlayers = (count) => {
-    return Array(count).fill(null).map((_, index) => `Player ${index}`);
-  };
-
-  // Set current player as middle player
-  const currentUserId = `Player ${Math.floor(totalPlayers / 2)}`;
-  
-  const [roundData, setRoundData] = useState({
-    id: '1',
-    maxPlayers: totalPlayers,
-    minPlayers: 1,
-    state: 'Started',
-    maxTurns: maxTurns,
-    maxEliminated: maxEliminated,
-    currentTurn: 0,
-    players: generatePlayers(totalPlayers),
-    turnInfo: [],
-    bump: 255
-  });
-
+  // State
+  const [currentRound, setCurrentRound] = useState(null);
   const [showCountdown, setShowCountdown] = useState(true);
+  const [userPubKey, setUserPubKey] = useState("");
+  const [userPlayerIndex, setUserPlayerIndex] = useState(-1);
+  const [userImage, setUserImage] = useState("");
+  const [showAllPlayers, setShowAllPlayers] = useState(true);
+
+  // Get game data from context
+  const { roundsData, connection } = useGameData();
+
+  // Load user public key and image from Telegram
+  useEffect(() => {
+    const pubKeyStr = localStorage.getItem("publicKey");
+    const initData = WebApp.initDataUnsafe;
+    if (initData && initData.user) {
+      setUserImage(initData.user.photo_url || "");
+    }
+    setUserPubKey(pubKeyStr || "");
+  }, []);
+
+  // Load round data when roundsData or roundId changes
+  useEffect(() => {
+    const round = roundsData.find(r => r.id === roundId);
+    if (round) {
+      setCurrentRound(round);
+    }
+  }, [roundId, roundsData]);
+
+  // Find user index when currentRound or userPubKey changes
+  useEffect(() => {
+    if (currentRound && userPubKey) {
+      const userIndex = currentRound.players.findIndex(playerKey => playerKey === userPubKey);
+      setUserPlayerIndex(userIndex);
+    }
+  }, [currentRound, userPubKey]);
+
+  // Handle turn countdown and player grid transitions
+  useEffect(() => {
+    if (showCountdown && currentRound) {
+      const timer = setTimeout(() => {
+        setShowCountdown(false);
+        setShowAllPlayers(false); // Switch to showing only surviving players after countdown
+        
+        // Automatically show next turn countdown after a delay if not on final turn
+        if (currentRound.currentTurn < currentRound.maxTurns) {
+          setTimeout(() => {
+            setShowCountdown(true);
+            setShowAllPlayers(true); // Reset to show all players on next countdown
+          }, 3000);
+        }
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [showCountdown, currentRound]);
+
+  // Return loading state if round data not available yet
+  if (!currentRound) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#4400CE]">
+        <div className="text-white text-xl">Loading game data...</div>
+      </div>
+    );
+  }
 
   const calculateGridConfig = (totalPlayers) => {
     if (totalPlayers <= 49) {
@@ -52,90 +91,75 @@ const TurnPage = () => {
     };
   };
 
-  const getRemainingPlayers = () => {
-    const currentTurnInfo = roundData.turnInfo[roundData.currentTurn - 1];
-    if (!currentTurnInfo) return roundData.players;
-    return currentTurnInfo.survivedPlayers;
+  const getSurvivingPlayerIndexes = () => {
+    if (!currentRound.turnInfo || currentRound.turnInfo.length === 0) {
+      return Array.from({ length: currentRound.players.length }, (_, i) => i);
+    }
+    
+    return currentRound.turnInfo[currentRound.turnInfo.length - 1].survivalPlayerIndexes;
+  };
+
+  const getAllPlayerIndexes = () => {
+    return Array.from({ length: currentRound.players.length }, (_, i) => i);
+  };
+
+  const getEliminatedPlayerIndexes = () => {
+    if (!currentRound.turnInfo || currentRound.turnInfo.length === 0) {
+      return [];
+    }
+    
+    return currentRound.turnInfo[currentRound.turnInfo.length - 1].eliminatedPlayerIndexes;
   };
 
   const isPlayerEliminated = () => {
-    const allEliminatedPlayers = roundData.turnInfo.flatMap(turn => turn.eliminatedPlayers);
-    return allEliminatedPlayers.includes(currentUserId);
+    if (userPlayerIndex === -1) return false;
+    
+    // Check if player is eliminated in ANY turn, not just the current one
+    for (const turnInfo of currentRound.turnInfo || []) {
+      if (turnInfo.eliminatedPlayerIndexes && turnInfo.eliminatedPlayerIndexes.includes(userPlayerIndex)) {
+        return true;
+      }
+    }
+    return false;
   };
 
   const isPlayerWinner = () => {
-    if (roundData.currentTurn !== roundData.maxTurns) return false;
-    const remainingPlayers = getRemainingPlayers();
-    return remainingPlayers.length === 1 && remainingPlayers[0] === currentUserId;
+    if (userPlayerIndex === -1) return false;
+    
+    const survivingIndexes = getSurvivingPlayerIndexes();
+    return currentRound.currentTurn === currentRound.maxTurns && 
+      survivingIndexes.length === 1 && 
+      survivingIndexes[0] === userPlayerIndex;
   };
 
-  const getRandomEliminations = (players, count) => {
-    const shuffled = [...players].sort(() => 0.5 - Math.random());
-    const currentPlayerIndex = shuffled.indexOf(currentUserId);
-    if (currentPlayerIndex !== -1 && currentPlayerIndex < count) {
-      const temp = shuffled[count];
-      shuffled[count] = currentUserId;
-      shuffled[currentPlayerIndex] = temp;
-    }
-    return {
-      eliminated: shuffled.slice(0, count),
-      survived: shuffled.slice(count)
-    };
-  };
-
-  useEffect(() => {
-    if (showCountdown) {
-      const timer = setTimeout(() => {
-        setShowCountdown(false);
-        
-        if (roundData.currentTurn >= roundData.maxTurns) return;
-
-        const remainingPlayers = getRemainingPlayers();
-        const eliminationCount = roundData.currentTurn === roundData.maxTurns - 1 
-          ? remainingPlayers.length - 1  // Leave one winner on final turn
-          : Math.min(roundData.maxEliminated, remainingPlayers.length - 1);
-
-        const { eliminated, survived } = getRandomEliminations(remainingPlayers, eliminationCount);
-
-        setRoundData(prev => ({
-          ...prev,
-          currentTurn: prev.currentTurn + 1,
-          turnInfo: [
-            ...prev.turnInfo,
-            {
-              index: prev.currentTurn,
-              survivedPlayers: survived,
-              eliminatedPlayers: eliminated
-            }
-          ]
-        }));
-
-        // Start next turn countdown after a delay
-        setTimeout(() => {
-          setShowCountdown(true);
-        }, 2000);
-      }, 3000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [showCountdown]);
-
-  const remainingPlayers = getRemainingPlayers();
-  const gridConfig = calculateGridConfig(remainingPlayers.length);
-  const currentUserPosition = Math.floor(gridConfig.totalSlots / 2);
+  // Get current game state - determine which player indexes to display based on showAllPlayers flag
+  const displayPlayerIndexes = showAllPlayers ? getAllPlayerIndexes() : getSurvivingPlayerIndexes();
+  const eliminatedPlayers = getEliminatedPlayerIndexes();
+  const gridConfig = calculateGridConfig(displayPlayerIndexes.length);
+  
+  // Player states
   const playerEliminated = isPlayerEliminated();
   const playerWinner = isPlayerWinner();
+
+  // Format addresses for display
+  const shortenAddress = (address) => {
+    if (!address) return "";
+    return address.slice(0, 4) + "..." + address.slice(-4);
+  };
 
   return (
     <div className="h-screen w-full flex flex-col bg-[#4400CE]">
       {/* Round Info */}
       <div className="p-4">
         <div className="bg-transparent border border-white/20 rounded-xl p-4 text-white">
+          <div className="text-center text-2xl text-white">
+            Current Player: Player {userPlayerIndex + 1}
+          </div>
           <div className="text-center text-2xl">
-            Turn {roundData.currentTurn} / {roundData.maxTurns}
+            Turn {currentRound.currentTurn} / {currentRound.maxTurns}
           </div>
           <div className="text-center text-xl">
-            {remainingPlayers.length} Players Remaining
+            {getSurvivingPlayerIndexes().length} Players Remaining
           </div>
         </div>
       </div>
@@ -143,24 +167,39 @@ const TurnPage = () => {
       {/* Game Grid */}
       <div className="px-4">
         <div className="grid grid-cols-7 gap-2">
-          {Array(gridConfig.totalSlots).fill(null).map((_, index) => (
-            <div key={index} className="aspect-square">
-              {index === currentUserPosition && remainingPlayers.includes(currentUserId) ? (
-                <div className={`w-full h-full rounded-full overflow-hidden ${
-                  playerEliminated ? 'bg-gray-500' :
-                  playerWinner ? 'bg-yellow-400' : 'bg-yellow-500'
-                }`}>
-                  <img 
-                    src="/api/placeholder/100/100"
-                    alt="Player"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-full rounded-full bg-white/80" />
-              )}
-            </div>
-          ))}
+          {Array(gridConfig.totalSlots).fill(null).map((_, gridIndex) => {
+            // If we have fewer players than grid slots, only show slots up to player count
+            if (gridIndex >= displayPlayerIndexes.length) {
+              return <div key={gridIndex} className="aspect-square" />;
+            }
+            
+            // Get the actual player index for this grid position
+            const playerIndex = displayPlayerIndexes[gridIndex];
+            
+            // Check if this is the current user
+            const isUserPosition = playerIndex === userPlayerIndex && 
+              getSurvivingPlayerIndexes().includes(userPlayerIndex) && !playerEliminated;
+            
+            return (
+              <div key={gridIndex} className="aspect-square">
+                {isUserPosition ? (
+                  <div className={`w-full h-full rounded-full overflow-hidden ${
+                    playerWinner ? 'bg-yellow-400' : 'bg-yellow-500'
+                  }`}>
+                    <img 
+                      src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t500x500.jpg"} 
+                      alt="User"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-full rounded-full bg-white/80 flex items-center justify-center text-xs overflow-hidden">
+                    <span className="text-gray-800">P{playerIndex + 1}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -170,15 +209,23 @@ const TurnPage = () => {
           {showCountdown ? (
             <div className="bg-transparent border border-white/20 rounded-xl p-4">
               <div className="text-center text-white text-2xl font-bold">
-                3... 2... 1... Turn {roundData.currentTurn + 1} Start!
+                3... 2... 1... Turn {currentRound.currentTurn} {currentRound.currentTurn === 1 ? "Start!" : "Continues!"}
               </div>
             </div>
           ) : playerEliminated ? (
-            <div className="mx-4 p-4 bg-red-500 bg-opacity-20 border border-red-500 border-opacity-40 rounded-xl flex items-center justify-center gap-2">
-              <AlertCircle className="w-6 h-6 text-white" />
-              <span className="text-white text-lg font-medium">
-                You've been eliminated!
-              </span>
+            <div className="mx-4 p-4 bg-red-500 bg-opacity-20 border border-red-500 border-opacity-40 rounded-xl flex flex-col items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-2">
+                <AlertCircle className="w-6 h-6 text-white" />
+                <span className="text-white text-lg font-medium">
+                  You've been eliminated!
+                </span>
+              </div>
+              <button 
+                onClick={() => navigate('/round-list1')} 
+                className="mt-4 px-6 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-medium transition-colors"
+              >
+                Continue to Round List
+              </button>
             </div>
           ) : playerWinner ? (
             <div className="mx-4 p-4 bg-yellow-500 border border-yellow-600 rounded-xl flex items-center justify-center gap-2">
@@ -186,12 +233,18 @@ const TurnPage = () => {
               <span className="text-white text-lg font-medium">
                 Congratulations! You're the winner!
               </span>
+              <button 
+                onClick={() => navigate('/round-list1')} 
+                className="mt-4 px-6 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-medium transition-colors"
+              >
+                Continue to Round List
+              </button>
             </div>
           ) : (
             <div className="space-y-2">
-              {roundData.turnInfo[roundData.currentTurn - 1]?.eliminatedPlayers.map((playerId, index) => (
+              {eliminatedPlayers.map((playerIndex, index) => (
                 <div key={index} className="text-white text-center text-lg">
-                  <span className="text-gray-300">{playerId}</span>
+                  <span className="text-gray-300">Player {playerIndex + 1}</span>
                   <span className="text-white"> eliminated</span>
                 </div>
               ))}

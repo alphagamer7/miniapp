@@ -76,7 +76,7 @@ const PhantomWalletConnect = () => {
       // Convert decrypted bytes to UTF-8 string
       const decryptedString = new TextDecoder().decode(decryptedBytes);
       console.log("Decrypted string (first 50 chars):", decryptedString.substring(0, 50) + "...");
-      
+
       // Parse the JSON string
       const result = JSON.parse(decryptedString);
       console.log("JSON parsed successfully:", result);
@@ -130,6 +130,8 @@ const PhantomWalletConnect = () => {
                 console.log("Successfully decrypted wallet data:", decryptedData);
                 alert("Successfully decrypted wallet data: " + JSON.stringify(decryptedData));
                 localStorage.setItem("publicKey", decryptedData.public_key);
+                alert("session: " + decryptedData.session);
+                localStorage.setItem("session", decryptedData.session || "");
                 // handleWalletConnection(decryptedData.public_key, "decrypted", decryptedData.session || "");
                 return;
               }
@@ -250,8 +252,11 @@ const PhantomWalletConnect = () => {
 
     const secretKeyBase58 = bs58.encode(dappKeyPair.secretKey);
     localStorage.setItem('phantom_connection_secret_key', secretKeyBase58);
+    // let phantom_connection_public_key = bs58.encode(dappKeyPair.publicKey);
+    localStorage.setItem('phantom_connection_public_key', bs58.encode(dappKeyPair.publicKey));
     console.log('secretKeyBase58:', secretKeyBase58);
     console.log('public key:', bs58.encode(dappKeyPair.publicKey));
+    alert('public key:' + bs58.encode(dappKeyPair.publicKey));
     
     const params = new URLSearchParams({
       app_url: 'https://thealphanova.com/',
@@ -359,7 +364,7 @@ const PhantomWalletConnect = () => {
               Connecting...
             </>
           ) : (
-            'Connect Phantom Wallet v6'
+            'Connect Phantom Wallet v7'
           )}
         </button>
       ) : (

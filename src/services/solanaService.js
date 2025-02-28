@@ -4,8 +4,8 @@ import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
 import { Buffer } from "buffer";
 
 export class SolanaService {
-  static PROGRAM_ID = "3fNocwdPfKwywpS7E7GUGkPDBDhXJ9xsdDmNb4m7TKXr";
-  static GAME_ID = "1738688341478";
+  static PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
+  static GAME_ID = "1740528038057";
 
   static PDA_PREFIXES = {
     GAME: "game",

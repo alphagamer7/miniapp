@@ -9,7 +9,7 @@ import { Connection, PublicKey } from "@solana/web3.js";
 
 export function RoundListPage1() {
     const ROUND_SEED_PREFIX = "round";
-    const PROGRAM_ID = "4bBkyHda9na1mhWG6iHBShoNZtfyx9ZGYbvcFBjrqwGX";
+    const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
   
     const [roundsData, setRoundsData] = useState([]);
     const [error, setError] = useState(null);

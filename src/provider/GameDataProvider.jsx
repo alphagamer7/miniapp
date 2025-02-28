@@ -21,9 +21,10 @@ export const GameDataProvider = ({ children }) => {
 
   // const NETWORK_URL = "https://api.devnet.solana.com"; // Network URL for Solana connection.
   const NETWORK_URL = "https://api.devnet.solana.com"; // Network URL for Solana connection.
-  const PROGRAM_ID = "3fNocwdPfKwywpS7E7GUGkPDBDhXJ9xsdDmNb4m7TKXr"; // Public key of the deployed Solana program.
+  const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof"; // Public key of the deployed Solana program.
 
-  const GAME_ID = "1738688341478"; // Identifier for the game.
+  const GAME_ID = "1740528038057"; // Identifier for the game.
+  // const GAME_ID = "1738688341478"; // Identifier for the game.
   // const GAME_ID = "1740356349542"; // Identifier for the game.
   const GAME_SEED_PREFIX = "game"; // Prefix used to derive the PDA.
   const ROUND_SEED_PREFIX = "round";
@@ -51,6 +52,9 @@ const deriveRoundPDA = async (roundId) => {
       [roundBytes, roundIdBytes],
       programId
     );
+
+    console.log(`Derived PDA for round ${roundId}:`, roundPDA.toBase58()); // Log the derived PDA
+
     return roundPDA;
   } catch (err) {
     console.error('Error deriving Round PDA:', err);
@@ -60,29 +64,47 @@ const deriveRoundPDA = async (roundId) => {
 const fetchRoundData = async (roundId) => {
   try {
     const roundPDA = await deriveRoundPDA(roundId);
-    const accountInfo = await connection.getAccountInfo(roundPDA);
+    console.log(`Round PDA ${roundPDA}`);
+    
+    // Retry logic to get account info
+    let attempts = 3;
+    let accountInfo = null;
+    
+    while (attempts > 0 && !accountInfo) {
+      accountInfo = await connection.getAccountInfo(roundPDA);
+      if (!accountInfo) {
+        console.log(`Attempt ${4-attempts}: No account found for round ${roundId}, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        attempts--;
+      }
+    }
     
     if (!accountInfo) {
-      console.error(`No account found for round ${roundId}`);
+      console.error(`No account found for round ${roundId} after multiple attempts`);
       return null;
     }
 
-    // Set up subscription for this round if it doesn't exist
+    // Decode the initial data
+    const decodedData = decodeRoundData(accountInfo.data);
+    
+    // Set up subscription for updates
     if (!subscriptions.has(roundId)) {
-      const subscriptionId = await AccountDecoder.setupRoundSubscription(
-        connection,
+      const subscriptionId = connection.onAccountChange(
         roundPDA,
-        (updatedRoundData) => {
-          console.log(`Round Data Updated ${JSON.stringify(updatedRoundData)}`)
+        (updatedAccountInfo) => {
+          const updatedDecodedData = decodeRoundData(updatedAccountInfo.data);
+          console.log(`Round Data Updated ${JSON.stringify(updatedDecodedData)}`);
+          
           setRoundsData(prevRounds => {
             return prevRounds.map(round => {
               if (round.id === roundId) {
-                return { ...updatedRoundData, id: roundId };
+                return { ...updatedDecodedData, id: roundId };
               }
               return round;
             });
           });
-        }
+        },
+        'confirmed'
       );
 
       if (subscriptionId) {
@@ -90,7 +112,7 @@ const fetchRoundData = async (roundId) => {
       }
     }
 
-    const decodedData = decodeRoundData(accountInfo.data);
+    // Return the initially decoded data
     return {
       ...decodedData,
       id: roundId

@@ -5,12 +5,11 @@ import { useGameData } from '@/provider/GameDataProvider';
 import { decodeRoundData } from "@/types/RoundDecoder";
 import { decodePlayerData } from "@/types/PlayerDecoder";
 import { PublicKey,SystemProgram, Transaction, TransactionInstruction } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
 // import { Buffer } from 'buffer';
 
 export function PlayerInfoPage() {
     const [playerData, setPlayerData] = useState(null);
-    const PROGRAM_ID = "3fNocwdPfKwywpS7E7GUGkPDBDhXJ9xsdDmNb4m7TKXr";
+    const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
       const { gameData, connection } = useGameData();
     useEffect(() => {
         const loadPlayerData = async () => {

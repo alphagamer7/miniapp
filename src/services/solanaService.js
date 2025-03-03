@@ -82,11 +82,54 @@ export class SolanaService {
 
   static async derivePlayerPDA(playerPubkey) {
     const pubkey = new PublicKey(playerPubkey);
-    return this.derivePDA(this.PDA_PREFIXES.PLAYER, [pubkey.toBytes()]);
+    
+    // Convert gameId to bytes
+    const gameIdBytes = new ArrayBuffer(8);
+    const view = new DataView(gameIdBytes);
+    view.setBigUint64(0, BigInt(this.GAME_ID), true);
+    
+    // Use the same seed pattern as in the Rust code
+    const seeds = [
+      new TextEncoder().encode(this.PDA_PREFIXES.PLAYER),
+      pubkey.toBytes(),
+      new Uint8Array(gameIdBytes)
+    ];
+    
+    const [playerPDA] = await PublicKey.findProgramAddress(
+      seeds,
+      new PublicKey(this.PROGRAM_ID)
+    );
+    
+    console.log('Derived player PDA:', playerPDA.toString());
+    return playerPDA;
   }
 
-  static async deriveRoundVaultPDA(roundPDA) {
-    return this.derivePDA(this.PDA_PREFIXES.ROUND_VAULT, [roundPDA.roundPDA.toBytes()]);
+  static async deriveRoundVaultPDA(roundPDA, roundId) {
+    // Convert gameId to bytes
+    const gameIdBytes = new ArrayBuffer(8);
+    const view64 = new DataView(gameIdBytes);
+    view64.setBigUint64(0, BigInt(this.GAME_ID), true);
+    
+    // Convert roundId to bytes
+    const roundIdBytes = new ArrayBuffer(4);
+    const view32 = new DataView(roundIdBytes);
+    view32.setUint32(0, parseInt(roundId), true);
+    
+    // Use the same seed pattern as in the Rust code
+    const seeds = [
+      new TextEncoder().encode(this.PDA_PREFIXES.ROUND_VAULT),
+      new Uint8Array(gameIdBytes),
+      new Uint8Array(roundIdBytes)
+    ];
+    
+    // Find the PDA
+    const [vaultPDA] = await PublicKey.findProgramAddress(
+      seeds,
+      new PublicKey(this.PROGRAM_ID)
+    );
+    
+    console.log('Derived vault PDA:', vaultPDA.toString());
+    return vaultPDA;
   }
 
   static async createJoinRoundTransaction({
@@ -111,7 +154,7 @@ export class SolanaService {
       const playerPDA = await this.derivePlayerPDA(playerPubkey);
       console.log('Player PDA:', playerPDA.toString());
       
-      const roundVault = await this.deriveRoundVaultPDA(roundPDA);
+      const roundVault = await this.deriveRoundVaultPDA(roundPDA,roundId);
       console.log('Round Vault PDA:', roundVault.toString());
       
       const playerATA = await getAssociatedTokenAddress(

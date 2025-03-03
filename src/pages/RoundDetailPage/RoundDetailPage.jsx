@@ -50,7 +50,6 @@ const RoundDetailPage = () => {
         alert('Please connect your wallet first');
         return;
       }
-
       if (!window.solana || !window.solana.isPhantom) {
         alert('Please install Phantom wallet');
         return;

@@ -128,9 +128,9 @@ const PhantomWalletConnect = () => {
               // Use the decrypted public key from the Phantom response
               if (decryptedData && decryptedData.public_key) {
                 console.log("Successfully decrypted wallet data:", decryptedData);
-                alert("Successfully decrypted wallet data: " + JSON.stringify(decryptedData));
+                // alert("Successfully decrypted wallet data: " + JSON.stringify(decryptedData));
                 localStorage.setItem("publicKey", decryptedData.public_key);
-                alert("session: " + decryptedData.session);
+                // alert("session: " + decryptedData.session);
                 localStorage.setItem("session", decryptedData.session || "");
                 // handleWalletConnection(decryptedData.public_key, "decrypted", decryptedData.session || "");
                 return;

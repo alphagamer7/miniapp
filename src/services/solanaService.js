@@ -53,10 +53,32 @@ export class SolanaService {
     return this.derivePDA(this.PDA_PREFIXES.GAME, [gameIdBytes]);
   }
 
-  static async deriveRoundPDA(roundId) {
-    const roundIdBytes = this.numberToLeBytes(parseInt(roundId, 10));
-    return this.derivePDA(this.PDA_PREFIXES.ROUND, [roundIdBytes]);
-  }
+  static  deriveRoundPDA = async (roundId) => {
+    // Convert gameId (uint64) and roundId (uint32) to byte arrays in little-endian format
+    const gameIdBytes = new ArrayBuffer(8); // 8 bytes for a 64-bit number
+    const view64 = new DataView(gameIdBytes);
+    view64.setBigUint64(0, BigInt(this.GAME_ID), true); // true for little-endian
+  
+    const roundIdBytes = new ArrayBuffer(4); // 4 bytes for a 32-bit number
+    const view32 = new DataView(roundIdBytes);
+    view32.setUint32(0, roundId, true); // true for little-endian
+  
+    // Combine the seeds for the PDA derivation
+    const seeds = [
+      new TextEncoder().encode("round"), // Prefix as a byte array
+      new Uint8Array(gameIdBytes),       // Game ID as a byte array
+      new Uint8Array(roundIdBytes),      // Round ID as a byte array
+    ];
+  
+    // Find the Program Derived Address using the provided seeds and the program ID
+    try {
+      const [roundPDA] = await PublicKey.findProgramAddress(seeds, new PublicKey(this.PROGRAM_ID));
+      return { roundPDA };
+    } catch (error) {
+      console.error("Error deriving Round PDA:", error);
+      throw error;
+    }
+  };
 
   static async derivePlayerPDA(playerPubkey) {
     const pubkey = new PublicKey(playerPubkey);
@@ -64,7 +86,7 @@ export class SolanaService {
   }
 
   static async deriveRoundVaultPDA(roundPDA) {
-    return this.derivePDA(this.PDA_PREFIXES.ROUND_VAULT, [roundPDA.toBytes()]);
+    return this.derivePDA(this.PDA_PREFIXES.ROUND_VAULT, [roundPDA.roundPDA.toBytes()]);
   }
 
   static async createJoinRoundTransaction({
@@ -84,7 +106,7 @@ export class SolanaService {
       
       console.log('Deriving PDAs...');
       const roundPDA = await this.deriveRoundPDA(roundId);
-      console.log('Round PDA:', roundPDA.toString());
+      console.log('Round PDA:', roundPDA.roundPDA.toString());
       
       const playerPDA = await this.derivePlayerPDA(playerPubkey);
       console.log('Player PDA:', playerPDA.toString());
@@ -100,12 +122,27 @@ export class SolanaService {
       
       console.log('Getting instruction discriminator...');
       const discriminator = await this.getDiscriminator('join_round');
-      const data = Buffer.from(discriminator);
+      
+      // Create a buffer to hold the discriminator and instruction arguments
+      const gameIdBytes = new ArrayBuffer(8);
+      const gameIdView = new DataView(gameIdBytes);
+      gameIdView.setBigUint64(0, BigInt(this.GAME_ID), true); // Set game_id argument
+      
+      const roundIdBytes = new ArrayBuffer(4);
+      const roundIdView = new DataView(roundIdBytes);
+      roundIdView.setUint32(0, parseInt(roundId), true); // Set round_id argument
+      
+      // Combine all bytes into one data buffer
+      const data = Buffer.concat([
+        Buffer.from(discriminator),
+        Buffer.from(new Uint8Array(gameIdBytes)),
+        Buffer.from(new Uint8Array(roundIdBytes))
+      ]);
       
       console.log('Creating instruction...');
       const instruction = new TransactionInstruction({
         keys: [
-          { pubkey: roundPDA, isSigner: false, isWritable: true },
+          { pubkey: roundPDA.roundPDA, isSigner: false, isWritable: true },
           { pubkey: playerPDA, isSigner: false, isWritable: true },
           { pubkey: playerPubkey, isSigner: true, isWritable: true },
           { pubkey: playerATA, isSigner: false, isWritable: true },
@@ -117,12 +154,12 @@ export class SolanaService {
         programId: programPubkey,
         data: data,
       });
-
+  
       console.log('Creating transaction...');
       const transaction = new Transaction().add(instruction);
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = playerPubkey;
-
+  
       return transaction;
     } catch (error) {
       console.error('Error creating join round transaction:', error);

@@ -44,7 +44,7 @@ const RoundDetailPage = () => {
   const handleConfirmClick = async () => {
     try {
       setIsJoining(true);
-      
+  
       const pubKeyStr = localStorage.getItem("publicKey");
       if (!pubKeyStr) {
         alert('Please connect your wallet first');
@@ -82,6 +82,8 @@ const RoundDetailPage = () => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const signed = await window.solana.signTransaction(transaction);
+      console.log(`Signed ${JSON.stringify(signed)}`)
+      console.log(`Signed Serialize ${signed.serialize()}`)
       const signature = await connection.sendRawTransaction(signed.serialize());
       
       const confirmation = await connection.confirmTransaction(signature);

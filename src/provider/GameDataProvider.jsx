@@ -42,45 +42,40 @@ const deriveGamePDA = async () => {
   return gamePDA;
 };
 const deriveRoundPDA = async (roundId) => {
+  // Convert gameId (uint64) and roundId (uint32) to byte arrays in little-endian format
+  const gameIdBytes = new ArrayBuffer(8); // 8 bytes for a 64-bit number
+  const view64 = new DataView(gameIdBytes);
+  view64.setBigUint64(0, BigInt(GAME_ID), true); // true for little-endian
+
+  const roundIdBytes = new ArrayBuffer(4); // 4 bytes for a 32-bit number
+  const view32 = new DataView(roundIdBytes);
+  view32.setUint32(0, roundId, true); // true for little-endian
+
+  // Combine the seeds for the PDA derivation
+  const seeds = [
+    new TextEncoder().encode("round"), // Prefix as a byte array
+    new Uint8Array(gameIdBytes),       // Game ID as a byte array
+    new Uint8Array(roundIdBytes),      // Round ID as a byte array
+  ];
+
+  // Find the Program Derived Address using the provided seeds and the program ID
   try {
-    const programId = new PublicKey(PROGRAM_ID);
-    const roundIdNumber = parseInt(roundId, 10);
-    const roundIdBytes = numberToLeBytes(roundIdNumber);
-    const roundBytes = new TextEncoder().encode(ROUND_SEED_PREFIX);
-
-    const [roundPDA] = await PublicKey.findProgramAddress(
-      [roundBytes, roundIdBytes],
-      programId
-    );
-
-    console.log(`Derived PDA for round ${roundId}:`, roundPDA.toBase58()); // Log the derived PDA
-
-    return roundPDA;
-  } catch (err) {
-    console.error('Error deriving Round PDA:', err);
-    throw err;
+    const [roundPDA] = await PublicKey.findProgramAddress(seeds, new PublicKey(PROGRAM_ID));
+    return { roundPDA };
+  } catch (error) {
+    console.error("Error deriving Round PDA:", error);
+    throw error;
   }
 };
 const fetchRoundData = async (roundId) => {
   try {
     const roundPDA = await deriveRoundPDA(roundId);
-    console.log(`Round PDA ${roundPDA}`);
-    
-    // Retry logic to get account info
-    let attempts = 3;
-    let accountInfo = null;
-    
-    while (attempts > 0 && !accountInfo) {
-      accountInfo = await connection.getAccountInfo(roundPDA);
-      if (!accountInfo) {
-        console.log(`Attempt ${4-attempts}: No account found for round ${roundId}, retrying...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts--;
-      }
-    }
+    console.log(`Round PDA ${JSON.stringify(roundPDA)}`);
+
+    const accountInfo = await connection.getAccountInfo(roundPDA.roundPDA);
     
     if (!accountInfo) {
-      console.error(`No account found for round ${roundId} after multiple attempts`);
+      console.error(`No account found for round ${roundId}`);
       return null;
     }
 
@@ -90,8 +85,9 @@ const fetchRoundData = async (roundId) => {
     // Set up subscription for updates
     if (!subscriptions.has(roundId)) {
       const subscriptionId = connection.onAccountChange(
-        roundPDA,
+        roundPDA.roundPDA,
         (updatedAccountInfo) => {
+          console.log(`Round Data Updated`);
           const updatedDecodedData = decodeRoundData(updatedAccountInfo.data);
           console.log(`Round Data Updated ${JSON.stringify(updatedDecodedData)}`);
           

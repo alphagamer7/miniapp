@@ -129,9 +129,140 @@ const RoundDetailPage = () => {
     }
   };
 
+  const handlePhantomTransactionReturn = (startParam) => {
+    try {
+      if (!startParam) return { success: false, error: "No transaction data found" };
+  
+      // Check if it starts with tx_ prefix
+      if (!startParam.startsWith('tx_')) {
+        return { success: false, error: "Invalid transaction data format" };
+      }
+  
+      // Remove tx_ prefix
+      const transactionData = startParam.substring(3);
+      
+      // Check if this is a shortened "success" message
+      if (transactionData.startsWith('success_')) {
+        // This is a shortened success message
+        // Try to retrieve full data from localStorage
+        const encryptedData = localStorage.getItem('phantom_transaction_data');
+        const nonce = localStorage.getItem('phantom_transaction_nonce');
+        
+        if (!encryptedData || !nonce) {
+          return { 
+            success: true, 
+            shortFormat: true,
+            error: "Transaction was successful but full data is not available"
+          };
+        }
+        
+        return {
+          success: true,
+          shortFormat: true,
+          encryptedData,
+          nonce
+        };
+      }
+      
+      // This should be the full format: encrypted_data_nonce
+      const parts = transactionData.split('_');
+      if (parts.length >= 2) {
+        // Last part is the nonce, everything before the last _ is the encrypted data
+        // (in case encrypted data itself contains underscores)
+        const nonce = parts[parts.length - 1];
+        const encryptedData = parts.slice(0, parts.length - 1).join('_');
+        
+        return {
+          success: true,
+          shortFormat: false,
+          encryptedData,
+          nonce
+        };
+      }
+      
+      return { success: false, error: "Invalid transaction data format" };
+    } catch (error) {
+      console.error("Error processing transaction return:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const decryptTransactionData = (encryptedData, nonce) => {
+    try {
+      // Get the necessary keys from localStorage
+      const secretKeyBase58 = localStorage.getItem("phantom_connection_secret_key");
+      if (!secretKeyBase58) {
+        throw new Error("Secret key not found. Please reconnect your wallet.");
+      }
+      
+      const phantomPublicKey = localStorage.getItem("phantom_public_key");
+      if (!phantomPublicKey) {
+        throw new Error("Phantom public key not found. Please reconnect your wallet.");
+      }
+      
+      // Decode from base58
+      const secretKey = bs58.decode(secretKeyBase58);
+      const phantomPublicKeyBytes = bs58.decode(phantomPublicKey);
+      const nonceBytes = bs58.decode(nonce);
+      const encryptedDataBytes = bs58.decode(encryptedData);
+      
+      // Create shared secret
+      const sharedSecret = nacl.box.before(phantomPublicKeyBytes, secretKey);
+      
+      // Decrypt the data
+      const decryptedBytes = nacl.box.open.after(encryptedDataBytes, nonceBytes, sharedSecret);
+      if (!decryptedBytes) {
+        throw new Error("Failed to decrypt transaction data");
+      }
+      
+      // Parse the JSON
+      const decryptedString = new TextDecoder().decode(decryptedBytes);
+      return JSON.parse(decryptedString);
+    } catch (error) {
+      console.error("Error decrypting transaction data:", error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    // Get startapp parameter from Telegram WebApp
+    const startParam = WebApp.initDataUnsafe.start_param || 
+                      new URLSearchParams(window.location.search).get('startapp');
+    alert("Start param: " + startParam);
+    
+    if (startParam && startParam.startsWith('tx_')) {
+      try {
+        const transactionData = handlePhantomTransactionReturn(startParam);
+        
+        if (transactionData.success) {
+          if (transactionData.encryptedData && transactionData.nonce) {
+            const decryptedData = decryptTransactionData(
+              transactionData.encryptedData, 
+              transactionData.nonce
+            );
+            
+            // Handle successful transaction
+            if (decryptedData.signature) {
+              setConfirmedSlot(Date.now());
+              setIsJoining(false);
+              alert("Successfully joined round with signature: " + decryptedData.signature);
+            }
+          } else {
+            // Handle success but no data case
+            setConfirmedSlot(Date.now());
+            setIsJoining(false);
+            alert("Successfully joined round!");
+          }
+        }
+      } catch (error) {
+        console.error("Failed to process transaction return:", error);
+        alert("Error processing transaction: " + error.message);
+      }
+    }
+  }, []);
+
   const handleMobileTransaction = async (pubKeyStr, sessionToken) => {
     try {
-      alert("Starting mobile transaction flow");
   
       // Create the transaction
       const transaction = await SolanaService.createJoinRoundTransaction({
@@ -141,100 +272,63 @@ const RoundDetailPage = () => {
         tokenMint: userToken.mint,
       });
   
-      alert(
-        `Transaction created:\nFeePayer: ${transaction.feePayer?.toBase58()}\nRecentBlockhash: ${
-          transaction.recentBlockhash
-        }\nInstructions: ${transaction.instructions.length}`
-      );
-  
       // Serialize the transaction
       const serializedTxn = transaction.serialize({ requireAllSignatures: false });
-      alert("Transaction serialized. Please confirm in your wallet.");
       const serializedTransaction = bs58.encode(serializedTxn);
-      alert("Serialized transaction: " + serializedTransaction);
-  
-      // Get stored values
-      const dappEncryptionPublicKey = localStorage.getItem("phantom_connection_public_key");
-      if (!dappEncryptionPublicKey) {
-        throw new Error("DApp encryption public key not found. Please reconnect your wallet.");
+      
+      // Create payload
+      const payload = {
+        session: sessionToken,
+        transaction: serializedTransaction
+      };
+      
+      // Get necessary items from localStorage for encryption
+      const phantomPublicKey = localStorage.getItem("phantom_public_key");
+      if (!phantomPublicKey) {
+        throw new Error("Phantom public key not found. Please reconnect your wallet.");
       }
-  
-      const userPublicKey = localStorage.getItem("publicKey");
-      if (!userPublicKey) {
-        throw new Error("User public key not found. Please reconnect your wallet.");
-      }
-  
-      const nonce = localStorage.getItem("phantom_nonce");
-      if (!nonce) {
-        throw new Error("Nonce not found. Please reconnect your wallet.");
-      }
-  
+      
       const secretKeyBase58 = localStorage.getItem("phantom_connection_secret_key");
       if (!secretKeyBase58) {
         throw new Error("DApp secret key not found. Please reconnect your wallet.");
       }
-  
-      // Decode keys and nonce
+      
+      // Create shared secret on the fly, similar to the wallet connection flow
       const secretKey = bs58.decode(secretKeyBase58);
-      const nonceBytes = bs58.decode(nonce);
-      const userPublicKeyBytes = bs58.decode(userPublicKey);
-  
-      // Validate lengths
-      if (secretKey.length !== 32) {
-        throw new Error(`Invalid secret key length: ${secretKey.length}, expected 32`);
-      }
-      if (userPublicKeyBytes.length !== 32) {
-        throw new Error(`Invalid user public key length: ${userPublicKeyBytes.length}, expected 32`);
-      }
-      if (nonceBytes.length !== 24) {
-        throw new Error(`Invalid nonce length: ${nonceBytes.length}, expected 24`);
-      }
-  
-      alert(
-        `Keys validated:\nDApp Public Key: ${dappEncryptionPublicKey}\nUser Public Key: ${userPublicKey}\nNonce: ${nonce}`
-      );
-  
-      // Create payload
-      const payload = {
-        transaction: serializedTransaction,
-        session: sessionToken,
-      };
-      const payloadString = JSON.stringify(payload);
-      alert("Payload before encryption: " + payloadString);
-  
+      const phantomPublicKeyBytes = bs58.decode(phantomPublicKey);
+      const sharedSecret = nacl.box.before(phantomPublicKeyBytes, secretKey);
+      
       // Encrypt payload
-      const messageBytes = new TextEncoder().encode(payloadString);
-      const sharedSecret = nacl.box.before(userPublicKeyBytes, secretKey);
-      const encryptedPayloadBytes = nacl.box.after(messageBytes, nonceBytes, sharedSecret);
-  
-      if (!encryptedPayloadBytes) {
-        throw new Error(
-          "Encryption failed. Check key pair or nonce.\n" +
-            `Secret key length: ${secretKey.length}\nUser PK length: ${userPublicKeyBytes.length}\nNonce length: ${nonceBytes.length}`
-        );
+      const nonce = nacl.randomBytes(24);
+      const messageBytes = Buffer.from(JSON.stringify(payload));
+      const encryptedPayloadBytes = nacl.box.after(messageBytes, nonce, sharedSecret);
+      
+      // Get dapp public key
+      const dappPublicKey = localStorage.getItem("phantom_connection_public_key");
+      if (!dappPublicKey) {
+        throw new Error("DApp public key not found. Please reconnect your wallet.");
       }
-      const encryptedPayload = bs58.encode(encryptedPayloadBytes);
-      // alert("Encrypted payload: " + encryptedPayload);
-  
+      
+      // Prepare redirect URL
       const redirectUrl = "https://thealphanova.com/phantom-transaction.html";
       localStorage.setItem("current_round_id", roundId);
-  
+      
+      // Construct deep link URL for Phantom
       const baseUrl = "https://phantom.app/ul/v1/signAndSendTransaction";
       const params = new URLSearchParams({
-        dapp_encryption_public_key: dappEncryptionPublicKey,
-        nonce: nonce,
+        dapp_encryption_public_key: dappPublicKey,
+        nonce: bs58.encode(nonce),
         redirect_link: redirectUrl,
-        payload: payloadString,
+        payload: bs58.encode(encryptedPayloadBytes)
       });
-  
+      
       const phantomUrl = `${baseUrl}?${params.toString()}`;
-      // alert(`Generated Phantom URL (truncated): ${phantomUrl.substring(0, 100)}...`);
-  
-      // Open in Telegram
-      // WebApp.openLink(phantomUrl);
-       WebApp.openLink(phantomUrl, {
-                try_instant_view: false
-              });
+      console.log("Opening Phantom URL:", phantomUrl);
+      
+      // Open in Telegram mini app browser
+      WebApp.openLink(phantomUrl, {
+        try_instant_view: false
+      });
     } catch (error) {
       console.error("Mobile transaction error:", error);
       alert("Transaction error: " + error.message);

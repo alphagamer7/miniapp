@@ -51,13 +51,11 @@ const TurnPage = () => {
     if (showCountdown && currentRound) {
       const timer = setTimeout(() => {
         setShowCountdown(false);
-        setShowAllPlayers(false); // Switch to showing only surviving players after countdown
         
         // Automatically show next turn countdown after a delay if not on final turn
-        if (currentRound.currentTurn < currentRound.maxTurns) {
+        if (currentRound.currentTurn < currentRound.totalTurns) {
           setTimeout(() => {
             setShowCountdown(true);
-            setShowAllPlayers(true); // Reset to show all players on next countdown
           }, 3000);
         }
       }, 3000);
@@ -91,14 +89,6 @@ const TurnPage = () => {
     };
   };
 
-  const getSurvivingPlayerIndexes = () => {
-    if (!currentRound.turnInfo || currentRound.turnInfo.length === 0) {
-      return Array.from({ length: currentRound.players.length }, (_, i) => i);
-    }
-    
-    return currentRound.turnInfo[currentRound.turnInfo.length - 1].survivalPlayerIndexes;
-  };
-
   const getAllPlayerIndexes = () => {
     return Array.from({ length: currentRound.players.length }, (_, i) => i);
   };
@@ -108,32 +98,42 @@ const TurnPage = () => {
       return [];
     }
     
-    return currentRound.turnInfo[currentRound.turnInfo.length - 1].eliminatedPlayerIndexes;
+    // Combine all eliminated players from all turns
+    let eliminatedIndexes = [];
+    for (const turn of currentRound.turnInfo) {
+      if (turn.eliminatedPlayerIndexes) {
+        eliminatedIndexes = [...eliminatedIndexes, ...turn.eliminatedPlayerIndexes];
+      }
+    }
+    return eliminatedIndexes;
+  };
+
+  const getSurvivingPlayerIndexes = () => {
+    const allPlayers = getAllPlayerIndexes();
+    const eliminatedPlayers = getEliminatedPlayerIndexes();
+    
+    // Return all players that are not in the eliminated list
+    return allPlayers.filter(playerIndex => !eliminatedPlayers.includes(playerIndex));
   };
 
   const isPlayerEliminated = () => {
     if (userPlayerIndex === -1) return false;
     
-    // Check if player is eliminated in ANY turn, not just the current one
-    for (const turnInfo of currentRound.turnInfo || []) {
-      if (turnInfo.eliminatedPlayerIndexes && turnInfo.eliminatedPlayerIndexes.includes(userPlayerIndex)) {
-        return true;
-      }
-    }
-    return false;
+    // Check if player is eliminated in ANY turn
+    return getEliminatedPlayerIndexes().includes(userPlayerIndex);
   };
 
   const isPlayerWinner = () => {
     if (userPlayerIndex === -1) return false;
     
     const survivingIndexes = getSurvivingPlayerIndexes();
-    return currentRound.currentTurn === currentRound.maxTurns && 
+    return currentRound.currentTurn === currentRound.totalTurns && 
       survivingIndexes.length === 1 && 
       survivingIndexes[0] === userPlayerIndex;
   };
 
-  // Get current game state - determine which player indexes to display based on showAllPlayers flag
-  const displayPlayerIndexes = showAllPlayers ? getAllPlayerIndexes() : getSurvivingPlayerIndexes();
+  // Always use all player indexes for the grid, but mark eliminated ones
+  const displayPlayerIndexes = getAllPlayerIndexes();
   const eliminatedPlayers = getEliminatedPlayerIndexes();
   const gridConfig = calculateGridConfig(displayPlayerIndexes.length);
   
@@ -147,6 +147,16 @@ const TurnPage = () => {
     return address.slice(0, 4) + "..." + address.slice(-4);
   };
 
+  // Get most recent eliminated players for the current turn display
+  const getMostRecentEliminatedPlayers = () => {
+    if (!currentRound.turnInfo || currentRound.turnInfo.length === 0) {
+      return [];
+    }
+    
+    // Get the most recent turn's eliminated players
+    return currentRound.turnInfo[currentRound.turnInfo.length - 1].eliminatedPlayerIndexes || [];
+  };
+
   return (
     <div className="h-screen w-full flex flex-col bg-[#4400CE]">
       {/* Round Info */}
@@ -156,7 +166,7 @@ const TurnPage = () => {
             Current Player: Player {userPlayerIndex + 1}
           </div>
           <div className="text-center text-2xl">
-            Turn {currentRound.currentTurn} / {currentRound.maxTurns}
+            Turn {currentRound.currentTurn} / {currentRound.totalTurns}
           </div>
           <div className="text-center text-xl">
             {getSurvivingPlayerIndexes().length} Players Remaining
@@ -193,8 +203,12 @@ const TurnPage = () => {
                     />
                   </div>
                 ) : (
-                  <div className="w-full h-full rounded-full bg-white/80 flex items-center justify-center text-xs overflow-hidden">
-                    <span className="text-gray-800">P{playerIndex + 1}</span>
+                  <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden ${
+                    eliminatedPlayers.includes(playerIndex) ? 'bg-gray-400' : 'bg-white/80'
+                  }`}>
+                    <span className={`${eliminatedPlayers.includes(playerIndex) ? 'text-gray-600' : 'text-gray-800'}`}>
+                      P{playerIndex + 1}
+                    </span>
                   </div>
                 )}
               </div>
@@ -242,7 +256,7 @@ const TurnPage = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {eliminatedPlayers.map((playerIndex, index) => (
+              {getMostRecentEliminatedPlayers().map((playerIndex, index) => (
                 <div key={index} className="text-white text-center text-lg">
                   <span className="text-gray-300">Player {playerIndex + 1}</span>
                   <span className="text-white"> eliminated</span>

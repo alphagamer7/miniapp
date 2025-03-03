@@ -24,12 +24,12 @@ const PhantomWalletConnect = () => {
       // First check URL for startapp parameter
       const startParam = WebApp.initDataUnsafe.start_param || 
                         new URLSearchParams(window.location.search).get('startapp');
-      alert(startParam)
+      // alert(startParam)
       if (startParam && /^[\w-]{0,512}$/.test(startParam)) {
         const parts = startParam.split('_');
         if (parts[0] === 'w' && parts[1] && parts[2] === 'u' && parts[4] === 's') {
           const walletAddress = parts[1];
-          alert(walletAddress);
+          // alert(walletAddress);
           const userId = parts[3];
           const sessionId = parts[5];
           const provider = getProvider();
@@ -47,7 +47,7 @@ const PhantomWalletConnect = () => {
                 type: 'wallet_connected',
                 wallet: parts[1]
               }));
-              alert("wallet connected")
+              // alert("wallet connected")
               return;
             } catch (err) {
               console.error('Error connecting to Phantom:', err);

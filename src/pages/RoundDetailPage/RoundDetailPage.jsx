@@ -90,29 +90,29 @@ const RoundDetailPage = () => {
   const handleConfirmClick = async () => {
     try {
       setIsJoining(true);
-
       const pubKeyStr = localStorage.getItem("publicKey");
       if (!pubKeyStr) {
         alert("Please connect your wallet first");
         setIsJoining(false);
         return;
       }
-
-      const sessionToken = localStorage.getItem("session");
-      if (!sessionToken) {
-        alert("No wallet session found. Please reconnect your wallet.");
-        setIsJoining(false);
-        return;
-      }
+    
 
       // Detect if we're running inside Telegram
       const isTelegram = window.Telegram && window.Telegram.WebApp;
 
       // Check if browser extension is available for direct connection
       const hasPhantomExtension = window.solana && window.solana.isPhantom;
-
-      if (isTelegram || !hasPhantomExtension) {
+      console.log(`Is Telegram ${isTelegram}`)
+      console.log(`hasPhantomExtension ${!hasPhantomExtension}`)
+      if (isTelegram && !hasPhantomExtension) {
         // If in Telegram OR no extension available, use deep link flow
+        const sessionToken = localStorage.getItem("session");
+        if (!sessionToken) {
+          alert("No wallet session found. Please reconnect your wallet.");
+          setIsJoining(false);
+          return;
+        }
         await handleMobileTransaction(pubKeyStr, sessionToken);
       } else {
         // Browser extension flow is only used when extension is detected
@@ -339,9 +339,15 @@ const RoundDetailPage = () => {
   // Handle transaction through Phantom browser extension
   const handleBrowserTransaction = async (pubKeyStr) => {
     try {
+      setIsJoining(true);
+  
+      const pubKeyStr = localStorage.getItem("publicKey");
+      if (!pubKeyStr) {
+        alert('Please connect your wallet first');
+        return;
+      }
       if (!window.solana || !window.solana.isPhantom) {
-        alert("Please install Phantom wallet");
-        setIsJoining(false);
+        alert('Please install Phantom wallet');
         return;
       }
 
@@ -349,19 +355,15 @@ const RoundDetailPage = () => {
         try {
           await window.solana.connect();
         } catch (err) {
-          console.error("Failed to connect wallet:", err);
-          alert("Failed to connect wallet. Please try again.");
-          setIsJoining(false);
+          console.error('Failed to connect wallet:', err);
+          alert('Failed to connect wallet. Please try again.');
           return;
         }
       }
 
       const connectedPubKey = window.solana.publicKey.toString();
       if (connectedPubKey !== pubKeyStr) {
-        alert(
-          "Connected wallet does not match stored wallet. Please reconnect."
-        );
-        setIsJoining(false);
+        alert('Connected wallet does not match stored wallet. Please reconnect.');
         return;
       }
 
@@ -369,32 +371,34 @@ const RoundDetailPage = () => {
         connection,
         roundId,
         playerKey: pubKeyStr,
-        tokenMint: userToken.mint,
+        tokenMint: userToken.mint
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const signed = await window.solana.signTransaction(transaction);
+      console.log(`Signed ${JSON.stringify(signed)}`)
+      console.log(`Signed Serialize ${signed.serialize()}`)
       const signature = await connection.sendRawTransaction(signed.serialize());
-
+      
       const confirmation = await connection.confirmTransaction(signature);
       if (confirmation.value.err) {
-        throw new Error(
-          "Transaction failed: " + JSON.stringify(confirmation.value.err)
-        );
+        throw new Error('Transaction failed: ' + JSON.stringify(confirmation.value.err));
       }
 
-      const { slot } = await AccountDecoder.subscribeToSignature(
-        connection,
-        signature
-      );
+      const { slot } = await AccountDecoder.subscribeToSignature(connection, signature);
       setConfirmedSlot(slot);
       setShowConfirmation(false);
-      setIsJoining(false);
-      alert("Successfully joined round!");
+      alert('Successfully joined round!');
     } catch (error) {
-      console.error("Browser transaction error:", error);
-      throw error;
+      console.error('Failed to join round:', error);
+      if (error.message.includes('User rejected')) {
+        alert('Transaction was rejected by the user');
+      } else {
+        alert('Failed to join round: ' + error.message);
+      }
+    } finally {
+      setIsJoining(false);
     }
   };
 

@@ -21,9 +21,11 @@ export const GameDataProvider = ({ children }) => {
 
   // const NETWORK_URL = "https://api.devnet.solana.com"; // Network URL for Solana connection.
   const NETWORK_URL = "https://api.devnet.solana.com"; // Network URL for Solana connection.
-  const PROGRAM_ID = "3fNocwdPfKwywpS7E7GUGkPDBDhXJ9xsdDmNb4m7TKXr"; // Public key of the deployed Solana program.
+  const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof"; // Public key of the deployed Solana program.
 
-  const GAME_ID = "1738688341478"; // Identifier for the game.
+  const GAME_ID = "1740528038057"; // Identifier for the game.
+  // const GAME_ID = "1738688341478"; // Identifier for the game.
+  // const GAME_ID = "1740356349542"; // Identifier for the game.
   const GAME_SEED_PREFIX = "game"; // Prefix used to derive the PDA.
   const ROUND_SEED_PREFIX = "round";
 
@@ -40,48 +42,65 @@ const deriveGamePDA = async () => {
   return gamePDA;
 };
 const deriveRoundPDA = async (roundId) => {
-  try {
-    const programId = new PublicKey(PROGRAM_ID);
-    const roundIdNumber = parseInt(roundId, 10);
-    const roundIdBytes = numberToLeBytes(roundIdNumber);
-    const roundBytes = new TextEncoder().encode(ROUND_SEED_PREFIX);
+  // Convert gameId (uint64) and roundId (uint32) to byte arrays in little-endian format
+  const gameIdBytes = new ArrayBuffer(8); // 8 bytes for a 64-bit number
+  const view64 = new DataView(gameIdBytes);
+  view64.setBigUint64(0, BigInt(GAME_ID), true); // true for little-endian
 
-    const [roundPDA] = await PublicKey.findProgramAddress(
-      [roundBytes, roundIdBytes],
-      programId
-    );
-    return roundPDA;
-  } catch (err) {
-    console.error('Error deriving Round PDA:', err);
-    throw err;
+  const roundIdBytes = new ArrayBuffer(4); // 4 bytes for a 32-bit number
+  const view32 = new DataView(roundIdBytes);
+  view32.setUint32(0, roundId, true); // true for little-endian
+
+  // Combine the seeds for the PDA derivation
+  const seeds = [
+    new TextEncoder().encode("round"), // Prefix as a byte array
+    new Uint8Array(gameIdBytes),       // Game ID as a byte array
+    new Uint8Array(roundIdBytes),      // Round ID as a byte array
+  ];
+
+  // Find the Program Derived Address using the provided seeds and the program ID
+  try {
+    const [roundPDA] = await PublicKey.findProgramAddress(seeds, new PublicKey(PROGRAM_ID));
+    return { roundPDA };
+  } catch (error) {
+    console.error("Error deriving Round PDA:", error);
+    throw error;
   }
 };
 const fetchRoundData = async (roundId) => {
   try {
     const roundPDA = await deriveRoundPDA(roundId);
-    const accountInfo = await connection.getAccountInfo(roundPDA);
+    console.log(`Round PDA ${JSON.stringify(roundPDA)}`);
+
+    const accountInfo = await connection.getAccountInfo(roundPDA.roundPDA);
     
     if (!accountInfo) {
       console.error(`No account found for round ${roundId}`);
       return null;
     }
 
-    // Set up subscription for this round if it doesn't exist
+    // Decode the initial data
+    const decodedData = decodeRoundData(accountInfo.data);
+    
+    // Set up subscription for updates
     if (!subscriptions.has(roundId)) {
-      const subscriptionId = await AccountDecoder.setupRoundSubscription(
-        connection,
-        roundPDA,
-        (updatedRoundData) => {
-          console.log(`Round Data Updated ${JSON.stringify(updatedRoundData)}`)
+      const subscriptionId = connection.onAccountChange(
+        roundPDA.roundPDA,
+        (updatedAccountInfo) => {
+          console.log(`Round Data Updated`);
+          const updatedDecodedData = decodeRoundData(updatedAccountInfo.data);
+          console.log(`Round Data Updated ${JSON.stringify(updatedDecodedData)}`);
+          
           setRoundsData(prevRounds => {
             return prevRounds.map(round => {
               if (round.id === roundId) {
-                return { ...updatedRoundData, id: roundId };
+                return { ...updatedDecodedData, id: roundId };
               }
               return round;
             });
           });
-        }
+        },
+        'confirmed'
       );
 
       if (subscriptionId) {
@@ -89,7 +108,7 @@ const fetchRoundData = async (roundId) => {
       }
     }
 
-    const decodedData = decodeRoundData(accountInfo.data);
+    // Return the initially decoded data
     return {
       ...decodedData,
       id: roundId

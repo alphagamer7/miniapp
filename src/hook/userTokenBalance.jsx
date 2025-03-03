@@ -14,7 +14,6 @@ export const userTokenBalance = () => {
         uiAmountString: "0",
         mint:""
     });
-      const PROGRAM_ID = "3fNocwdPfKwywpS7E7GUGkPDBDhXJ9xsdDmNb4m7TKXr";
 
     const checkBalance = async () => {
         try {

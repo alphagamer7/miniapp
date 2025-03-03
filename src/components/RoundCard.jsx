@@ -27,6 +27,9 @@ export const RoundCard = ({ players, time, isLive, isJoined, roundAmount, roundI
           <div className="text-green-400 text-center text-xl">Joined ({roundAmount}$ELON)</div>
         )}
       </div>
+      <div className="flex justify-center">
+      <span className="text-2xl font-medium">{roundId}</span>
+      </div>
     </div>
   );
 };

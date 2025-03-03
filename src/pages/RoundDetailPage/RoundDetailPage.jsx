@@ -129,6 +129,138 @@ const RoundDetailPage = () => {
     }
   };
 
+  const handlePhantomTransactionReturn = (startParam) => {
+    try {
+      if (!startParam) return { success: false, error: "No transaction data found" };
+  
+      // Check if it starts with tx_ prefix
+      if (!startParam.startsWith('tx_')) {
+        return { success: false, error: "Invalid transaction data format" };
+      }
+  
+      // Remove tx_ prefix
+      const transactionData = startParam.substring(3);
+      
+      // Check if this is a shortened "success" message
+      if (transactionData.startsWith('success_')) {
+        // This is a shortened success message
+        // Try to retrieve full data from localStorage
+        const encryptedData = localStorage.getItem('phantom_transaction_data');
+        const nonce = localStorage.getItem('phantom_transaction_nonce');
+        
+        if (!encryptedData || !nonce) {
+          return { 
+            success: true, 
+            shortFormat: true,
+            error: "Transaction was successful but full data is not available"
+          };
+        }
+        
+        return {
+          success: true,
+          shortFormat: true,
+          encryptedData,
+          nonce
+        };
+      }
+      
+      // This should be the full format: encrypted_data_nonce
+      const parts = transactionData.split('_');
+      if (parts.length >= 2) {
+        // Last part is the nonce, everything before the last _ is the encrypted data
+        // (in case encrypted data itself contains underscores)
+        const nonce = parts[parts.length - 1];
+        const encryptedData = parts.slice(0, parts.length - 1).join('_');
+        
+        return {
+          success: true,
+          shortFormat: false,
+          encryptedData,
+          nonce
+        };
+      }
+      
+      return { success: false, error: "Invalid transaction data format" };
+    } catch (error) {
+      console.error("Error processing transaction return:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const decryptTransactionData = (encryptedData, nonce) => {
+    try {
+      // Get the necessary keys from localStorage
+      const secretKeyBase58 = localStorage.getItem("phantom_connection_secret_key");
+      if (!secretKeyBase58) {
+        throw new Error("Secret key not found. Please reconnect your wallet.");
+      }
+      
+      const phantomPublicKey = localStorage.getItem("phantom_public_key");
+      if (!phantomPublicKey) {
+        throw new Error("Phantom public key not found. Please reconnect your wallet.");
+      }
+      
+      // Decode from base58
+      const secretKey = bs58.decode(secretKeyBase58);
+      const phantomPublicKeyBytes = bs58.decode(phantomPublicKey);
+      const nonceBytes = bs58.decode(nonce);
+      const encryptedDataBytes = bs58.decode(encryptedData);
+      
+      // Create shared secret
+      const sharedSecret = nacl.box.before(phantomPublicKeyBytes, secretKey);
+      
+      // Decrypt the data
+      const decryptedBytes = nacl.box.open.after(encryptedDataBytes, nonceBytes, sharedSecret);
+      if (!decryptedBytes) {
+        throw new Error("Failed to decrypt transaction data");
+      }
+      
+      // Parse the JSON
+      const decryptedString = new TextDecoder().decode(decryptedBytes);
+      return JSON.parse(decryptedString);
+    } catch (error) {
+      console.error("Error decrypting transaction data:", error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    // Get startapp parameter from Telegram WebApp
+    const startParam = WebApp.initDataUnsafe.start_param || 
+                      new URLSearchParams(window.location.search).get('startapp');
+    alert("Start param: " + startParam);
+    
+    if (startParam && startParam.startsWith('tx_')) {
+      try {
+        const transactionData = handlePhantomTransactionReturn(startParam);
+        
+        if (transactionData.success) {
+          if (transactionData.encryptedData && transactionData.nonce) {
+            const decryptedData = decryptTransactionData(
+              transactionData.encryptedData, 
+              transactionData.nonce
+            );
+            
+            // Handle successful transaction
+            if (decryptedData.signature) {
+              setConfirmedSlot(Date.now());
+              setIsJoining(false);
+              alert("Successfully joined round with signature: " + decryptedData.signature);
+            }
+          } else {
+            // Handle success but no data case
+            setConfirmedSlot(Date.now());
+            setIsJoining(false);
+            alert("Successfully joined round!");
+          }
+        }
+      } catch (error) {
+        console.error("Failed to process transaction return:", error);
+        alert("Error processing transaction: " + error.message);
+      }
+    }
+  }, []);
+
   const handleMobileTransaction = async (pubKeyStr, sessionToken) => {
     try {
   

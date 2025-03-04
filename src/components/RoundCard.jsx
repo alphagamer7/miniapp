@@ -6,10 +6,15 @@ export const RoundCard = ({ players, time, isLive, isJoined, roundAmount, roundI
   const handleClick = () => {
     navigate(`/round-detail/${roundId}`);
   };
+  const naviagateTurnPage = () => {
+    console.log("Cliked navigate to turn page")
+    navigate(`/waiting-turn-page/${roundId}`);
+  };
+  
 
   return (
     <div 
-      onClick={handleClick}
+      onClick={isJoined?naviagateTurnPage:isLive?null:handleClick}
       className="bg-transparent border border-black rounded-xl p-4 text-white cursor-pointer"
     >
       <div className="flex justify-between mb-1">

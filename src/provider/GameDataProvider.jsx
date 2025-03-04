@@ -87,7 +87,7 @@ const fetchRoundData = async (roundId) => {
       const subscriptionId = connection.onAccountChange(
         roundPDA.roundPDA,
         (updatedAccountInfo) => {
-          console.log(`Round Data Updated`);
+          console.log("Round Data updated:", JSON.stringify(updatedAccountInfo));
           const updatedDecodedData = decodeRoundData(updatedAccountInfo.data);
           console.log(`Round Data Updated ${JSON.stringify(updatedDecodedData)}`);
           
@@ -168,7 +168,7 @@ const numberToLeBytes = (num) => {
             connection,
             pda,
             async (decodedGameData) => {
-              console.log("Game data updated:", decodedGameData);
+ 
               setGameData(decodedGameData);
               
               // Fetch rounds data when game data updates

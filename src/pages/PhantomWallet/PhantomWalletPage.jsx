@@ -293,12 +293,12 @@ const PhantomWalletConnect = () => {
       session: '',
       userId: ''
     });
-    
-    localStorage.removeItem('phantomWallet');
-    localStorage.removeItem('publicKey');
-    localStorage.removeItem('phantom_encrypted_data');
-    localStorage.removeItem('phantom_public_key');
-    localStorage.removeItem('phantom_nonce');
+    localStorage.clear()
+    // localStorage.removeItem('phantomWallet');
+    // localStorage.removeItem('publicKey');
+    // localStorage.removeItem('phantom_encrypted_data');
+    // localStorage.removeItem('phantom_public_key');
+    // localStorage.removeItem('phantom_nonce');
     setError('');
     
     WebApp.sendData(JSON.stringify({

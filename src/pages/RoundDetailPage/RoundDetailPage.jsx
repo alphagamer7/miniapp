@@ -59,10 +59,7 @@ const RoundDetailPage = () => {
     const round = roundsData.find((r) => r.id === roundId);
     if (round) {
       setCurrentRound(round);
-      if (round.state === "Playing") {
-        console.log("Round is now playing, navigating to game board...");
-        navigate(`/turn-page/${roundId}`);
-      }
+     
     }
   }, [roundsData, roundId, navigate]);
 
@@ -329,6 +326,7 @@ const RoundDetailPage = () => {
       WebApp.openLink(phantomUrl, {
         try_instant_view: false
       });
+      navigate(`/waiting-turn-page/${roundId}`);
     } catch (error) {
       console.error("Mobile transaction error:", error);
       alert("Transaction error: " + error.message);
@@ -390,6 +388,7 @@ const RoundDetailPage = () => {
       setConfirmedSlot(slot);
       setShowConfirmation(false);
       alert('Successfully joined round!');
+      navigate(`/waiting-turn-page/${roundId}`);
     } catch (error) {
       console.error('Failed to join round:', error);
       if (error.message.includes('User rejected')) {

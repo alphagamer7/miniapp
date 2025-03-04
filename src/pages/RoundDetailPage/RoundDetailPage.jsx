@@ -76,7 +76,7 @@ const RoundDetailPage = () => {
       setConfirmedSlot(Date.now()); // Use timestamp as placeholder for slot
       setShowConfirmation(false);
       setIsJoining(false);
-      alert("Successfully joined round!");
+      // //alert("Successfully joined round!");
 
       // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -92,7 +92,7 @@ const RoundDetailPage = () => {
       setIsJoining(true);
       const pubKeyStr = localStorage.getItem("publicKey");
       if (!pubKeyStr) {
-        alert("Please connect your wallet first");
+        //alert("Please connect your wallet first");
         setIsJoining(false);
         return;
       }
@@ -109,7 +109,7 @@ const RoundDetailPage = () => {
         // If in Telegram OR no extension available, use deep link flow
         const sessionToken = localStorage.getItem("session");
         if (!sessionToken) {
-          alert("No wallet session found. Please reconnect your wallet.");
+          //alert("No wallet session found. Please reconnect your wallet.");
           setIsJoining(false);
           return;
         }
@@ -121,9 +121,9 @@ const RoundDetailPage = () => {
     } catch (error) {
       console.error("Failed to join round:", error);
       if (error.message.includes("User rejected")) {
-        alert("Transaction was rejected by the user");
+        //alert("Transaction was rejected by the user");
       } else {
-        alert("Failed to join round: " + error.message);
+        //alert("Failed to join round: " + error.message);
       }
       setIsJoining(false);
     }
@@ -228,7 +228,7 @@ const RoundDetailPage = () => {
     // Get startapp parameter from Telegram WebApp
     const startParam = WebApp.initDataUnsafe.start_param || 
                       new URLSearchParams(window.location.search).get('startapp');
-    alert("Start param: " + startParam);
+    //alert("Start param: " + startParam);
     
     if (startParam && startParam.startsWith('tx_')) {
       try {
@@ -245,18 +245,18 @@ const RoundDetailPage = () => {
             if (decryptedData.signature) {
               setConfirmedSlot(Date.now());
               setIsJoining(false);
-              alert("Successfully joined round with signature: " + decryptedData.signature);
+              //alert("Successfully joined round with signature: " + decryptedData.signature);
             }
           } else {
             // Handle success but no data case
             setConfirmedSlot(Date.now());
             setIsJoining(false);
-            alert("Successfully joined round!");
+            //alert("Successfully joined round!");
           }
         }
       } catch (error) {
         console.error("Failed to process transaction return:", error);
-        alert("Error processing transaction: " + error.message);
+        //alert("Error processing transaction: " + error.message);
       }
     }
   }, []);
@@ -331,7 +331,7 @@ const RoundDetailPage = () => {
       });
     } catch (error) {
       console.error("Mobile transaction error:", error);
-      alert("Transaction error: " + error.message);
+      //alert("Transaction error: " + error.message);
       throw error;
     }
   };
@@ -343,11 +343,11 @@ const RoundDetailPage = () => {
   
       const pubKeyStr = localStorage.getItem("publicKey");
       if (!pubKeyStr) {
-        alert('Please connect your wallet first');
+        //alert('Please connect your wallet first');
         return;
       }
       if (!window.solana || !window.solana.isPhantom) {
-        alert('Please install Phantom wallet');
+        //alert('Please install Phantom wallet');
         return;
       }
 
@@ -356,14 +356,14 @@ const RoundDetailPage = () => {
           await window.solana.connect();
         } catch (err) {
           console.error('Failed to connect wallet:', err);
-          alert('Failed to connect wallet. Please try again.');
+          //alert('Failed to connect wallet. Please try again.');
           return;
         }
       }
 
       const connectedPubKey = window.solana.publicKey.toString();
       if (connectedPubKey !== pubKeyStr) {
-        alert('Connected wallet does not match stored wallet. Please reconnect.');
+        //alert('Connected wallet does not match stored wallet. Please reconnect.');
         return;
       }
 
@@ -389,13 +389,13 @@ const RoundDetailPage = () => {
       const { slot } = await AccountDecoder.subscribeToSignature(connection, signature);
       setConfirmedSlot(slot);
       setShowConfirmation(false);
-      alert('Successfully joined round!');
+      //alert('Successfully joined round!');
     } catch (error) {
       console.error('Failed to join round:', error);
       if (error.message.includes('User rejected')) {
-        alert('Transaction was rejected by the user');
+        //alert('Transaction was rejected by the user');
       } else {
-        alert('Failed to join round: ' + error.message);
+        //alert('Failed to join round: ' + error.message);
       }
     } finally {
       setIsJoining(false);

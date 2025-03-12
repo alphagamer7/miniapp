@@ -10,6 +10,8 @@ import { PublicKey,SystemProgram, Transaction, TransactionInstruction } from "@s
 export function PlayerInfoPage() {
     const [playerData, setPlayerData] = useState(null);
     const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
+    // const GAME_ID = "1741053547878"; 
+    const GAME_ID = "1741655861356"; 
       const { gameData, connection } = useGameData();
     useEffect(() => {
         const loadPlayerData = async () => {
@@ -24,22 +26,28 @@ export function PlayerInfoPage() {
     
         loadPlayerData();
       }, [connection]);
-        const derivePlayerPDA = async (playerPubkey, programId) => {
-            try {
-              console.log("Deriving Player PDA for:", playerPubkey.toString());
-              const [playerPDA] = await PublicKey.findProgramAddress(
-                [
-                  Buffer.from("player"),
-                  playerPubkey.toBytes()
-                ],
-                programId
-              );
-              console.log('Generated Player PDA:', playerPDA.toString());
-              return [playerPDA];
-            } catch (err) {
-              console.error('Error deriving Player PDA:', err);
-              throw err;
-            }
+        const derivePlayerPDA = async (playerPubkey) => {
+          const pubkey = new PublicKey(playerPubkey);
+    
+          // Convert gameId to bytes
+          const gameIdBytes = new ArrayBuffer(8);
+          const view = new DataView(gameIdBytes);
+          view.setBigUint64(0, BigInt("1741053547878"), true);
+          
+          // Use the same seed pattern as in the Rust code
+          const seeds = [
+            new TextEncoder().encode("player"),
+            pubkey.toBytes(),
+            new Uint8Array(gameIdBytes)
+          ];
+          
+          const [playerPDA] = await PublicKey.findProgramAddress(
+            seeds,
+            new PublicKey("5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof")
+          );
+          
+          console.log('Derived player PDA:', playerPDA.toString());
+          return playerPDA;
           };
     const fetchPlayerAccountInfo = async (playerKey) => {
         try {
@@ -48,7 +56,7 @@ export function PlayerInfoPage() {
           // Derive player PDA
           const programId = new PublicKey(PROGRAM_ID);
           const playerPubkey = new PublicKey(playerKey);
-          const [playerPDA] = await derivePlayerPDA(playerPubkey, programId);
+          const playerPDA = await derivePlayerPDA(playerPubkey);
           
           console.log('Player PDA:', playerPDA.toString());
           

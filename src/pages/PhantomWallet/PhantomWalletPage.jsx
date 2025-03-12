@@ -3,7 +3,7 @@ import WebApp from '@twa-dev/sdk';
 import nacl from "tweetnacl";
 import bs58 from "bs58";
 
-const PhantomWalletConnect = () => {
+const PhantomWalletConnect = ({ onWalletStateChange }) => {
   const [walletState, setWalletState] = useState({
     address: '',
     isConnected: false,
@@ -18,6 +18,13 @@ const PhantomWalletConnect = () => {
   // Constants
   const TELEGRAM_BOT_URL = 'https://t.me/testalphabot44123411bot';
   const REDIRECT_BASE_URL = 'https://thealphanova.com';
+
+  // Update parent component when wallet state changes
+  useEffect(() => {
+    if (onWalletStateChange) {
+      onWalletStateChange(walletState);
+    }
+  }, [walletState, onWalletStateChange]);
 
   // Load saved wallet and check device type on component mount
   useEffect(() => {

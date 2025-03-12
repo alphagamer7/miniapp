@@ -14,6 +14,7 @@ import RoundList from '@/pages/RoundListPage/RoundListPage2';
 import RoundDetailPage from '@/pages/RoundDetailPage/RoundDetailPage';
 import TurnPage from '@/pages/TurnPage/TurnPage';
 import WaitingTurnPage from '@/pages/WaitingTurnPage/WaitingTurnPage';
+import BalanceAndHistory from '@/pages/Menu/BalanceAndHistory';
 
 /**
  * @typedef {object} Route
@@ -29,6 +30,7 @@ import WaitingTurnPage from '@/pages/WaitingTurnPage/WaitingTurnPage';
 export const routes = [
   { path: '/', Component: HomePage },
   { path: '/home', Component: LoginScreen },
+  { path: '/balence-history', Component: BalanceAndHistory },
   { path: '/round-list1', Component: RoundList },
   { path: '/round-detail/:roundId', Component: RoundDetailPage },
   { path: '/user-data', Component: IndexPage },

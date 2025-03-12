@@ -17,13 +17,16 @@ export const GameDataProvider = ({ children }) => {
   const [error, setError] = useState(null); // State to handle any errors.
   const [connection, setConnection] = useState(null); // State to manage the Solana connection.
   const [roundsData, setRoundsData] = useState([]);
+  const [completedRounds, setCompletedRounds] = useState([]);
   const [subscriptions, setSubscriptions] = useState(new Map());
 
   // const NETWORK_URL = "https://api.devnet.solana.com"; // Network URL for Solana connection.
   const NETWORK_URL = "https://api.devnet.solana.com"; // Network URL for Solana connection.
   const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof"; // Public key of the deployed Solana program.
 
-  const GAME_ID = "1740528038057"; // Identifier for the game.
+  const GAME_ID = "1741655861356"; // Identifier for the game.  
+  // const GAME_ID = "1741053547878"; // Identifier for the game.
+  // const GAME_ID = "1740528038057"; // Identifier for the game.
   // const GAME_ID = "1738688341478"; // Identifier for the game.
   // const GAME_ID = "1740356349542"; // Identifier for the game.
   const GAME_SEED_PREFIX = "game"; // Prefix used to derive the PDA.
@@ -176,8 +179,12 @@ const numberToLeBytes = (num) => {
                 const allRoundsData = await Promise.all(
                   decodedGameData.activeRounds.map(roundId => fetchRoundData(roundId))
                 );
+                const completedRounds = await Promise.all(
+                  decodedGameData.completedRounds.map(roundId => fetchRoundData(roundId))
+                );
                 const validRoundsData = allRoundsData.filter(data => data !== null);
                 setRoundsData(validRoundsData);
+                setCompletedRounds(completedRounds)
               }
             }
           );
@@ -205,13 +212,18 @@ const numberToLeBytes = (num) => {
 
   // Providing the context value to children components.
   return (
-    <GameDataContext.Provider value={{ gameData,  roundsData,  error, connection ,  refreshRounds: async () => {
+    <GameDataContext.Provider value={{ gameData,  roundsData,completedRounds,  error, connection ,  refreshRounds: async () => {
       if (gameData?.activeRounds) {
         const allRoundsData = await Promise.all(
           gameData.activeRounds.map(roundId => fetchRoundData(roundId))
         );
+        const completedRounds = await Promise.all(
+          gameData.completedRounds.map(roundId => fetchRoundData(roundId))
+        );
+      
         const validRoundsData = allRoundsData.filter(data => data !== null);
         setRoundsData(validRoundsData);
+        setCompletedRounds(completedRounds)
       }
     }}}>
       {children}

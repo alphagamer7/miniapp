@@ -28,7 +28,9 @@ export const Header = () => {
         {/* Dropdown Menu */}
         {showMenu && (
           <div className="absolute right-2 top-15 bg-gray-800 rounded-lg shadow-lg py-1 w-48">
-            <button className="w-full px-4 py-2 text-white text-left hover:bg-gray-700">
+            <button className="w-full px-4 py-2 text-white text-left hover:bg-gray-700"
+              onClick={() => navigate("/balence-history")}
+            >
               Balance & History
             </button>
             <button className="w-full px-4 py-2 text-white text-left hover:bg-gray-700">

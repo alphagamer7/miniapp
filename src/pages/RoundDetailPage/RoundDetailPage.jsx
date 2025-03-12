@@ -1,4 +1,4 @@
-import { ChevronLeft, MoreHorizontal } from "lucide-react";
+import { ChevronLeft, MoreHorizontal, AlertCircle, X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useGameData } from "@/provider/GameDataProvider";
@@ -12,6 +12,56 @@ import nacl from "tweetnacl";
 import WebApp from '@twa-dev/sdk';
 import { PublicKey } from "@solana/web3.js";
 import { PhantomMobileService } from "@/services/phantomMobileService";
+import animationData from '@/assets/WaitingClock.json'
+import Lottie from 'lottie-react';
+const LottieAnimation = () => {
+  return (
+    <div className="lottie-container w-full h-64 flex items-center justify-center">
+      <Lottie 
+        animationData={animationData} 
+        loop={true}
+        autoplay={true}
+        style={{ width: '200px', height: '200px' }}
+        rendererSettings={{
+          preserveAspectRatio: 'xMidYMid meet'
+        }}
+        speed={1}
+      />
+    </div>
+  );
+};
+const JoiningModal = ({ onClose, entryFees }) => {
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#4400CE] rounded-xl p-6 max-w-md w-full border border-white/20">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-white text-xl font-bold">Joining Round</h2>
+          <button 
+            onClick={onClose} 
+            className="text-white hover:text-gray-300"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="w-full h-64 flex items-center justify-center mb-6">
+          <LottieAnimation />
+        </div>
+
+        <button className="w-full bg-transparent border border-black rounded-xl p-4 text-white text-xl text-center">
+          <div className="flex items-center justify-center gap-2">
+            <span>Joining Round ({entryFees || "0"} $ELON)...</span>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white"></div>
+          </div>
+        </button>
+        
+        <p className="text-white/70 text-center mt-4">
+          Please wait while we process your transaction
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const RoundDetailPage = () => {
   const navigate = useNavigate();
@@ -375,7 +425,7 @@ const RoundDetailPage = () => {
       return (
         <button className="w-full bg-transparent border border-black rounded-xl p-4 text-white text-xl text-center">
           <div className="flex items-center justify-center gap-2">
-            <span>Joining Round...</span>
+            <span>Processing...</span>
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white"></div>
           </div>
         </button>
@@ -415,19 +465,23 @@ const RoundDetailPage = () => {
       );
     }
 
+    const hasJoined = currentRound.players.includes(userPublicKey);
     return (
       <button
-        onClick={handleJoinClick}
-        className="w-full bg-transparent border border-black rounded-xl p-4 text-white text-xl text-center"
+        onClick={hasJoined ? undefined : handleJoinClick}
+        disabled={hasJoined}
+        className={`w-full bg-transparent border border-black rounded-xl p-4 text-xl text-center ${
+          hasJoined ? 'text-green-400 cursor-not-allowed' : 'text-white'
+        }`}
       >
-        Join ({currentRound.entryFees?.toString() || "0"} $ELON)
+        {hasJoined ? 'Joined' : 'Join'} ({currentRound.entryFees?.toString() || "0"} $ELON)
       </button>
     );
   };
 
   return (
     <div
-      className="h-screen w-full flex flex-col"
+      className="min-h-screen w-full flex flex-col"
       style={{ backgroundColor: "#4400CE" }}
     >
       <Header />
@@ -477,6 +531,13 @@ const RoundDetailPage = () => {
           </button>
         </div>
       </div>
+
+      {isJoining && (
+        <JoiningModal 
+          onClose={() => setIsJoining(false)} 
+          entryFees={currentRound.entryFees?.toString()}
+        />
+      )}
     </div>
   );
 };

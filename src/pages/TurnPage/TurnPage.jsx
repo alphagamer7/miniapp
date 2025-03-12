@@ -16,6 +16,7 @@ const TurnPage = () => {
   const [userPlayerIndex, setUserPlayerIndex] = useState(-1);
   const [userImage, setUserImage] = useState("");
   const [lastProcessedTurn, setLastProcessedTurn] = useState(0);
+  const [animatedEliminatedPlayers, setAnimatedEliminatedPlayers] = useState([]);
 
   // Get game data from context
   const { roundsData, connection } = useGameData();
@@ -30,6 +31,19 @@ const TurnPage = () => {
     setUserPubKey(pubKeyStr || "");
   }, []);
 
+  // Get previously eliminated players (from turns before current turn)
+  const getPreviouslyEliminatedPlayers = () => {
+    if (!currentRound?.turnInfo) return [];
+    
+    let previouslyEliminated = [];
+    currentRound.turnInfo.forEach(turn => {
+      if (turn.index < currentRound.currentTurn && turn.eliminatedPlayerIndexes) {
+        previouslyEliminated = [...previouslyEliminated, ...turn.eliminatedPlayerIndexes];
+      }
+    });
+    return previouslyEliminated;
+  };
+
   // Load round data when roundsData or roundId changes
   useEffect(() => {
     const round = roundsData.find(r => r.id === roundId);
@@ -42,6 +56,14 @@ const TurnPage = () => {
       
       // If this is the first load or we have a new turn with data, start the sequence
       if (needsToRestartSequence) {
+        // Initialize with previously eliminated players
+        const previouslyEliminated = round.turnInfo
+          ? round.turnInfo
+              .filter(turn => turn.index < round.currentTurn)
+              .flatMap(turn => turn.eliminatedPlayerIndexes || [])
+          : [];
+        
+        setAnimatedEliminatedPlayers(previouslyEliminated);
         setTurnPhase('countdown');
         setLastProcessedTurn(round.currentTurn);
       }
@@ -61,21 +83,30 @@ const TurnPage = () => {
     if (!currentRound) return;
     
     if (turnPhase === 'countdown') {
-      // After countdown, show players
-      const timer = setTimeout(() => {
-        setTurnPhase('players');
-      }, 3000);
-      return () => clearTimeout(timer);
-    } 
-    else if (turnPhase === 'players') {
-      // After showing players, show eliminated
+      // After countdown, show players with eliminated ones
       const timer = setTimeout(() => {
         setTurnPhase('eliminated');
       }, 3000);
       return () => clearTimeout(timer);
     }
-    // In 'eliminated' phase, we stay and wait for a new turn
   }, [turnPhase, currentRound]);
+
+  // Effect to handle elimination animations
+  useEffect(() => {
+    if (turnPhase === 'eliminated' && getCurrentTurnEliminatedPlayers().length > 0) {
+      // Start with previously eliminated players
+      const previouslyEliminated = getPreviouslyEliminatedPlayers();
+      setAnimatedEliminatedPlayers(previouslyEliminated);
+      
+      // Then add current turn eliminations one by one
+      getCurrentTurnEliminatedPlayers().forEach((playerIndex, index) => {
+        const timer = setTimeout(() => {
+          setAnimatedEliminatedPlayers(prev => [...prev, playerIndex]);
+        }, index * 1500);
+        return () => clearTimeout(timer);
+      });
+    }
+  }, [turnPhase]);
 
   // Return loading state if round data not available yet
   if (!currentRound) {
@@ -177,26 +208,11 @@ const TurnPage = () => {
   // Determine which players to show as eliminated based on the current phase
   let eliminatedPlayers = [];
   if (turnPhase === 'countdown') {
-    // During countdown, only show players eliminated in previous turns
-    eliminatedPlayers = getEliminatedPlayerIndexes().filter(idx => {
-      // Check if this player was eliminated in any turn before the current one
-      return currentRound.turnInfo.some(turn => 
-        turn.index < currentRound.currentTurn && 
-        turn.eliminatedPlayerIndexes.includes(idx)
-      );
-    });
-  } else if (turnPhase === 'players') {
-    // During 'players' phase, still only show players eliminated in previous turns
-    eliminatedPlayers = getEliminatedPlayerIndexes().filter(idx => {
-      // Check if this player was eliminated in any turn before the current one
-      return currentRound.turnInfo.some(turn => 
-        turn.index < currentRound.currentTurn && 
-        turn.eliminatedPlayerIndexes.includes(idx)
-      );
-    });
+    // During countdown, show all players eliminated in previous turns
+    eliminatedPlayers = getPreviouslyEliminatedPlayers();
   } else {
-    // In 'eliminated' phase, show all eliminated players including current turn
-    eliminatedPlayers = getEliminatedPlayerIndexes();
+    // After countdown, show previously eliminated plus animated current turn eliminations
+    eliminatedPlayers = animatedEliminatedPlayers;
   }
   
   const gridConfig = calculateGridConfig(displayPlayerIndexes.length);
@@ -208,7 +224,7 @@ const TurnPage = () => {
  
 
   return (
-    <div className="h-screen w-full flex flex-col bg-[#4400CE]">
+    <div className="min-h-screen w-full flex flex-col bg-[#4400CE] overflow-auto">
       {/* Round Info */}
       <div className="p-4">
         <div className="bg-transparent border border-white/20 rounded-xl p-4 text-white">
@@ -225,7 +241,7 @@ const TurnPage = () => {
       </div>
 
       {/* Game Grid */}
-      <div className="px-4">
+      <div className="px-4 flex-1">
         <div className="grid grid-cols-7 gap-2">
           {Array(gridConfig.totalSlots).fill(null).map((_, gridIndex) => {
             // If we have fewer players than grid slots, only show slots up to player count
@@ -255,10 +271,10 @@ const TurnPage = () => {
                     />
                   </div>
                 ) : (
-                  <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden ${
+                  <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden transition-colors duration-500 ${
                     eliminatedPlayers.includes(playerIndex) ? 'bg-gray-400' : 'bg-white/80'
                   }`}>
-                    <span className={`${eliminatedPlayers.includes(playerIndex) ? 'text-gray-600' : 'text-gray-800'}`}>
+                    <span className={`transition-colors duration-500 ${eliminatedPlayers.includes(playerIndex) ? 'text-gray-600' : 'text-gray-800'}`}>
                       P{playerIndex + 1}
                     </span>
                   </div>
@@ -293,29 +309,106 @@ const TurnPage = () => {
               </button>
             </div>
           ): playerEliminated ? (
-            <div className="mx-4 p-4 bg-red-500 bg-opacity-20 border border-red-500 border-opacity-40 rounded-xl flex flex-col items-center justify-center gap-2">
-              <div className="flex items-center justify-center gap-2">
-                <AlertCircle className="w-6 h-6 text-white" />
-                <span className="text-white text-lg font-medium">
-                  You've been eliminated!
-                </span>
+            <div className="space-y-4">
+              {/* Elimination animations */}
+              <div className="space-y-2">
+                {getCurrentTurnEliminatedPlayers().length > 0 ? (
+                  getCurrentTurnEliminatedPlayers().map((playerIndex, index) => {
+                    // Check if this is the winner (first player in last turn)
+                    const isLastTurn = currentRound.currentTurn === currentRound.totalTurns;
+                    const isFirstPlayer = index === 0;
+                    const isWinner = isLastTurn && isFirstPlayer;
+
+                    return (
+                      <div 
+                        key={index} 
+                        className={`text-white text-center text-lg relative border border-transparent ${
+                          isWinner ? 'animate-border-glow-winner' : 'animate-border-glow'
+                        }`}
+                        style={{
+                          animation: `${isWinner ? 'borderGlowWinner' : 'borderGlow'} 0.5s ease-out ${index * 1.5}s forwards, 
+                                    fadeIn 0.5s ease-out ${index * 1.5}s forwards`,
+                          opacity: 0,
+                        }}
+                      >
+                        <div 
+                          className="py-2 px-4"
+                          style={{
+                            animation: `slideIn 0.5s ease-out ${index * 1.5}s forwards`,
+                            transform: 'translateY(20px)',
+                          }}
+                        >
+                          <span className={isWinner ? "text-yellow-300" : "text-gray-300"}>
+                            Player {playerIndex + 1}
+                          </span>
+                          <span className={isWinner ? "text-yellow-300" : "text-white"}>
+                            {isWinner ? " winner!" : " eliminated"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-white text-center text-lg">
+                    Waiting for elimination results...
+                  </div>
+                )}
               </div>
-              <button 
-                onClick={() => navigate('/round-list1')} 
-                className="mt-4 px-6 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-medium transition-colors"
-              >
-                Continue to Round List
-              </button>
+
+              {/* Elimination message */}
+              <div className="mx-4 p-4 bg-red-500 bg-opacity-20 border border-red-500 border-opacity-40 rounded-xl flex flex-col items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-2">
+                  <AlertCircle className="w-6 h-6 text-white" />
+                  <span className="text-white text-lg font-medium">
+                    You've been eliminated!
+                  </span>
+                </div>
+                <button 
+                  onClick={() => navigate('/round-list1')} 
+                  className="mt-4 px-6 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-medium transition-colors"
+                >
+                  Continue to Round List
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
               {getCurrentTurnEliminatedPlayers().length > 0 ? (
-                getCurrentTurnEliminatedPlayers().map((playerIndex, index) => (
-                  <div key={index} className="text-white text-center text-lg">
-                    <span className="text-gray-300">Player {playerIndex + 1}</span>
-                    <span className="text-white"> eliminated</span>
-                  </div>
-                ))
+                getCurrentTurnEliminatedPlayers().map((playerIndex, index) => {
+                  // Check if this is the winner (first player in last turn)
+                  const isLastTurn = currentRound.currentTurn === currentRound.totalTurns;
+                  const isFirstPlayer = index === 0;
+                  const isWinner = isLastTurn && isFirstPlayer;
+
+                  return (
+                    <div 
+                      key={index} 
+                      className={`text-white text-center text-lg relative border border-transparent ${
+                        isWinner ? 'animate-border-glow-winner' : 'animate-border-glow'
+                      }`}
+                      style={{
+                        animation: `${isWinner ? 'borderGlowWinner' : 'borderGlow'} 0.5s ease-out ${index * 1.5}s forwards, 
+                                  fadeIn 0.5s ease-out ${index * 1.5}s forwards`,
+                        opacity: 0,
+                      }}
+                    >
+                      <div 
+                        className="py-2 px-4"
+                        style={{
+                          animation: `slideIn 0.5s ease-out ${index * 1.5}s forwards`,
+                          transform: 'translateY(20px)',
+                        }}
+                      >
+                        <span className={isWinner ? "text-yellow-300" : "text-gray-300"}>
+                          Player {playerIndex + 1}
+                        </span>
+                        <span className={isWinner ? "text-yellow-300" : "text-white"}>
+                          {isWinner ? " winner!" : " eliminated"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
               ) : currentRound.currentTurn > 0 ? (
                 <div className="text-white text-center text-lg">
                   Waiting for elimination results...
@@ -332,5 +425,51 @@ const TurnPage = () => {
     </div>
   );
 };
+
+// Add these styles at the top of your file, after the imports
+const styles = `
+  @keyframes borderGlow {
+    0% {
+      border-color: transparent;
+    }
+    100% {
+      border-color: rgba(255, 255, 255, 0.2);
+      border-radius: 0.5rem;
+    }
+  }
+
+  @keyframes borderGlowWinner {
+    0% {
+      border-color: transparent;
+    }
+    100% {
+      border-color: rgba(255, 215, 0, 0.4);
+      border-radius: 0.5rem;
+    }
+  }
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideIn {
+    0% {
+      transform: translateY(20px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+`;
+
+// Add this right after the styles
+const styleSheet = document.createElement("style");
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);
 
 export default TurnPage;

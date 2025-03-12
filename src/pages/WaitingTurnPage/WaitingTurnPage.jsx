@@ -40,7 +40,7 @@ const WaitingTurnPage = () => {
     console.log(`Round ${JSON.stringify(round)}`)
     if (round) {
       setCurrentRound(round);
-      if (round.state === "Playing") {
+      if (round.state === "Playing" || round.state === "Resulted") {
         console.log("Round is now playing, navigating to game board...");
         navigate(`/turn-page/${roundId}`);
       }
@@ -128,13 +128,16 @@ const WaitingTurnPage = () => {
   }
   const LottieAnimation = () => {
     return (
-      <div className="lottie-container">
+      <div className="lottie-container w-full h-64 flex items-center justify-center">
         <Lottie 
           animationData={animationData} 
-          loop={true} 
+          loop={true}
+          autoplay={true}
+          style={{ width: '200px', height: '200px' }}
           rendererSettings={{
-            preserveAspectRatio: 'xMidYMid slice'
+            preserveAspectRatio: 'xMidYMid meet'
           }}
+          speed={1}
         />
       </div>
     );
@@ -187,7 +190,7 @@ const WaitingTurnPage = () => {
 
 
   return (
-    <div className="h-screen w-full flex flex-col bg-[#4400CE]">
+    <div className="min-h-screen w-full flex flex-col bg-[#4400CE] overflow-auto">
       {/* Round Info */}
       <div className="p-4">
         <div className="bg-transparent border border-white/20 rounded-xl p-4 text-white">
@@ -201,8 +204,8 @@ const WaitingTurnPage = () => {
       </div>
 
       {/* Game Grid */}
-      <div className="px-4">
-        <div className="grid grid-cols-7 gap-2">
+      <div className="px-4 flex-1">
+        <div className="grid grid-cols-7 gap-2 mb-4">
           {Array(gridConfig.totalSlots).fill(null).map((_, gridIndex) => {
             // If we have fewer players than grid slots, only show slots up to player count
             if (gridIndex >= displayPlayerIndexes.length) {
@@ -239,15 +242,25 @@ const WaitingTurnPage = () => {
           })}
         </div>
       </div>
+      {currentRound.state !== "Started" && (
+        <div className="w-full">
           <LottieAnimation/>
+        </div>
+      )}
       {/* Bottom Section */}
-      <div className="flex-1 flex items-end pb-8">
-        <div className="w-full px-4">
+      <div className="w-full px-4 pb-8">
+        <div className="w-full">
             <div className="bg-transparent border border-white/20 rounded-xl p-4">
             <div className="text-center text-white text-xl font-bold">
-                Game Will Start
-                <br></br>{currentRound?.scheduleStartTime ? formatTimestamp(currentRound.scheduleStartTime) : "Loading..."}
-                <br></br>{timeRemaining || "Calculating..."}
+                {currentRound.state === "Started" ? (
+                  "Turn is starting please wait..."
+                ) : (
+                  <>
+                    Game Will Start
+                    <br></br>{currentRound?.scheduleStartTime ? formatTimestamp(currentRound.scheduleStartTime) : "Loading..."}
+                    <br></br>{timeRemaining || "Calculating..."}
+                  </>
+                )}
             </div>
             </div>
         </div>

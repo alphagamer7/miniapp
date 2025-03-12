@@ -11,6 +11,7 @@ import bs58 from "bs58";
 import nacl from "tweetnacl";
 import WebApp from '@twa-dev/sdk';
 import { PublicKey } from "@solana/web3.js";
+import { PhantomMobileService } from "@/services/phantomMobileService";
 import animationData from '@/assets/WaitingClock.json'
 import Lottie from 'lottie-react';
 const LottieAnimation = () => {
@@ -310,76 +311,29 @@ const RoundDetailPage = () => {
 
   const handleMobileTransaction = async (pubKeyStr, sessionToken) => {
     try {
-  
-      // Create the transaction
+      // Create and prepare the transaction
       const transaction = await SolanaService.createJoinRoundTransaction({
         connection,
         roundId,
         playerKey: pubKeyStr,
         tokenMint: userToken.mint,
       });
-  
-      // Serialize the transaction
-      const serializedTxn = transaction.serialize({ requireAllSignatures: false });
-      const serializedTransaction = bs58.encode(serializedTxn);
-      
-      // Create payload
-      const payload = {
-        session: sessionToken,
-        transaction: serializedTransaction
-      };
-      
-      // Get necessary items from localStorage for encryption
-      const phantomPublicKey = localStorage.getItem("phantom_public_key");
-      if (!phantomPublicKey) {
-        throw new Error("Phantom public key not found. Please reconnect your wallet.");
-      }
-      
-      const secretKeyBase58 = localStorage.getItem("phantom_connection_secret_key");
-      if (!secretKeyBase58) {
-        throw new Error("DApp secret key not found. Please reconnect your wallet.");
-      }
-      
-      // Create shared secret on the fly, similar to the wallet connection flow
-      const secretKey = bs58.decode(secretKeyBase58);
-      const phantomPublicKeyBytes = bs58.decode(phantomPublicKey);
-      const sharedSecret = nacl.box.before(phantomPublicKeyBytes, secretKey);
-      
-      // Encrypt payload
-      const nonce = nacl.randomBytes(24);
-      const messageBytes = Buffer.from(JSON.stringify(payload));
-      const encryptedPayloadBytes = nacl.box.after(messageBytes, nonce, sharedSecret);
-      
-      // Get dapp public key
-      const dappPublicKey = localStorage.getItem("phantom_connection_public_key");
-      if (!dappPublicKey) {
-        throw new Error("DApp public key not found. Please reconnect your wallet.");
-      }
-      
-      // Prepare redirect URL
-      const redirectUrl = "https://thealphanova.com/phantom-transaction.html";
+
+      // Serialize and prepare the transaction payload
+      const serializedTransaction = await PhantomMobileService.prepareTransaction(transaction);
+      const payload = PhantomMobileService.createTransactionPayload(serializedTransaction, sessionToken);
+
+      // Create the Phantom URL for signing and sending
+      const phantomUrl = await PhantomMobileService.createSignAndSendUrl(payload);
+
+      // Store current round ID for the callback
       localStorage.setItem("current_round_id", roundId);
-      
-      // Construct deep link URL for Phantom
-      const baseUrl = "https://phantom.app/ul/v1/signAndSendTransaction";
-      const params = new URLSearchParams({
-        dapp_encryption_public_key: dappPublicKey,
-        nonce: bs58.encode(nonce),
-        redirect_link: redirectUrl,
-        payload: bs58.encode(encryptedPayloadBytes)
-      });
-      
-      const phantomUrl = `${baseUrl}?${params.toString()}`;
-      console.log("Opening Phantom URL:", phantomUrl);
-      
+
       // Open in Telegram mini app browser
-      WebApp.openLink(phantomUrl, {
-        try_instant_view: false
-      });
+      WebApp.openLink(phantomUrl, { try_instant_view: false });
       navigate(`/waiting-turn-page/${roundId}`);
     } catch (error) {
       console.error("Mobile transaction error:", error);
-      //alert("Transaction error: " + error.message);
       throw error;
     }
   };

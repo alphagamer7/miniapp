@@ -224,7 +224,7 @@ const TurnPage = () => {
  
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-[#4400CE] overflow-auto">
+    <div className="min-h-screen w-full flex flex-col bg-[#4400CE] overflow-hidden">
       {/* Round Info */}
       <div className="p-4">
         <div className="bg-transparent border border-white/20 rounded-xl p-4 text-white">
@@ -310,8 +310,8 @@ const TurnPage = () => {
             </div>
           ): playerEliminated ? (
             <div className="space-y-4">
-              {/* Elimination animations */}
-              <div className="space-y-2">
+              {/* Elimination animations - scrollable container */}
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 rounded-lg">
                 {getCurrentTurnEliminatedPlayers().length > 0 ? (
                   getCurrentTurnEliminatedPlayers().map((playerIndex, index) => {
                     // Check if this is the winner (first player in last turn)
@@ -373,51 +373,54 @@ const TurnPage = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {getCurrentTurnEliminatedPlayers().length > 0 ? (
-                getCurrentTurnEliminatedPlayers().map((playerIndex, index) => {
-                  // Check if this is the winner (first player in last turn)
-                  const isLastTurn = currentRound.currentTurn === currentRound.totalTurns;
-                  const isFirstPlayer = index === 0;
-                  const isWinner = isLastTurn && isFirstPlayer;
+              {/* Regular elimination animations - scrollable container */}
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 rounded-lg">
+                {getCurrentTurnEliminatedPlayers().length > 0 ? (
+                  getCurrentTurnEliminatedPlayers().map((playerIndex, index) => {
+                    // Check if this is the winner (first player in last turn)
+                    const isLastTurn = currentRound.currentTurn === currentRound.totalTurns;
+                    const isFirstPlayer = index === 0;
+                    const isWinner = isLastTurn && isFirstPlayer;
 
-                  return (
-                    <div 
-                      key={index} 
-                      className={`text-white text-center text-lg relative border border-transparent ${
-                        isWinner ? 'animate-border-glow-winner' : 'animate-border-glow'
-                      }`}
-                      style={{
-                        animation: `${isWinner ? 'borderGlowWinner' : 'borderGlow'} 0.5s ease-out ${index * 1.5}s forwards, 
-                                  fadeIn 0.5s ease-out ${index * 1.5}s forwards`,
-                        opacity: 0,
-                      }}
-                    >
+                    return (
                       <div 
-                        className="py-2 px-4"
+                        key={index} 
+                        className={`text-white text-center text-lg relative border border-transparent ${
+                          isWinner ? 'animate-border-glow-winner' : 'animate-border-glow'
+                        }`}
                         style={{
-                          animation: `slideIn 0.5s ease-out ${index * 1.5}s forwards`,
-                          transform: 'translateY(20px)',
+                          animation: `${isWinner ? 'borderGlowWinner' : 'borderGlow'} 0.5s ease-out ${index * 1.5}s forwards, 
+                                    fadeIn 0.5s ease-out ${index * 1.5}s forwards`,
+                          opacity: 0,
                         }}
                       >
-                        <span className={isWinner ? "text-yellow-300" : "text-gray-300"}>
-                          Player {playerIndex + 1}
-                        </span>
-                        <span className={isWinner ? "text-yellow-300" : "text-white"}>
-                          {isWinner ? " winner!" : " eliminated"}
-                        </span>
+                        <div 
+                          className="py-2 px-4"
+                          style={{
+                            animation: `slideIn 0.5s ease-out ${index * 1.5}s forwards`,
+                            transform: 'translateY(20px)',
+                          }}
+                        >
+                          <span className={isWinner ? "text-yellow-300" : "text-gray-300"}>
+                            Player {playerIndex + 1}
+                          </span>
+                          <span className={isWinner ? "text-yellow-300" : "text-white"}>
+                            {isWinner ? " winner!" : " eliminated"}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })
-              ) : currentRound.currentTurn > 0 ? (
-                <div className="text-white text-center text-lg">
-                  Waiting for elimination results...
-                </div>
-              ) : (
-                <div className="text-white text-center text-lg">
-                  Round about to start
-                </div>
-              )}
+                    );
+                  })
+                ) : currentRound.currentTurn > 0 ? (
+                  <div className="text-white text-center text-lg">
+                    Waiting for elimination results...
+                  </div>
+                ) : (
+                  <div className="text-white text-center text-lg">
+                    Round about to start
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

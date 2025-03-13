@@ -5,7 +5,7 @@ import { Buffer } from "buffer";
 
 export class SolanaService {
   static PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
-  static GAME_ID = "1741655861356";
+  static GAME_ID = "1741827653264";
 
   static PDA_PREFIXES = {
     GAME: "game",

@@ -11,7 +11,7 @@ export function PlayerInfoPage() {
     const [playerData, setPlayerData] = useState(null);
     const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
     // const GAME_ID = "1741053547878"; 
-    const GAME_ID = "1741655861356"; 
+    const GAME_ID = "1741829414591"; 
       const { gameData, connection } = useGameData();
     useEffect(() => {
         const loadPlayerData = async () => {
@@ -32,7 +32,7 @@ export function PlayerInfoPage() {
           // Convert gameId to bytes
           const gameIdBytes = new ArrayBuffer(8);
           const view = new DataView(gameIdBytes);
-          view.setBigUint64(0, BigInt("1741053547878"), true);
+          view.setBigUint64(0, BigInt(this.GAME_ID), true);
           
           // Use the same seed pattern as in the Rust code
           const seeds = [

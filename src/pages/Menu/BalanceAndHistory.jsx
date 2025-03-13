@@ -12,7 +12,7 @@ const BalanceAndHistory = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
-  const GAME_ID = "1741655861356"; 
+  const GAME_ID = "1741829414591"; 
   const { gameData, connection, roundsData,completedRounds } = useGameData();
 
   useEffect(() => {

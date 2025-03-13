@@ -24,7 +24,7 @@ export const GameDataProvider = ({ children }) => {
   const NETWORK_URL = "https://api.devnet.solana.com"; // Network URL for Solana connection.
   const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof"; // Public key of the deployed Solana program.
 
-  const GAME_ID = "1741655861356"; // Identifier for the game.  
+  const GAME_ID = "1741827653264"; // Identifier for the game.  
   // const GAME_ID = "1741053547878"; // Identifier for the game.
   // const GAME_ID = "1740528038057"; // Identifier for the game.
   // const GAME_ID = "1738688341478"; // Identifier for the game.

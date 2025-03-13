@@ -12,7 +12,7 @@ const BalanceAndHistory = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
-  const GAME_ID = "1741655861356"; 
+  const GAME_ID = "1741827443990"; 
   const { gameData, connection, roundsData,completedRounds } = useGameData();
 
   useEffect(() => {
@@ -27,6 +27,7 @@ const BalanceAndHistory = () => {
         const data = await fetchPlayerAccountInfo(pubKeyStr);
         
         if (data) {
+          console.log(`Data ${JSON.stringify(data)}`)
           setPlayerData(data);
           // Update balance from totalPayout - totalBet
           const totalBet = BigInt(data.totalBet);
@@ -85,19 +86,19 @@ const BalanceAndHistory = () => {
     }
     
     // Add round histories (completed games)
-    console.log(`PlayerData RoundHistories ${JSON.stringify(playerData.roundHistories)}`)
+
     if (playerData.roundHistories && playerData.roundHistories.length > 0) {
       playerData.roundHistories.forEach(history => {
         const roundId = parseInt(history.roundId);
    
 
-        // console.log(`RoundId ${roundId}`)
+       
         const roundInfo = completedRounds.find(r => parseInt(r.id) === roundId);
-  
-        console.log(`RoundInfo ${roundId} ${JSON.stringify(roundInfo)}`)
+        
+
         if(roundInfo && roundInfo.state==="Closed"){
   
-          console.log(`TurnInfo ${JSON.stringify(roundInfo.turnInfo)}`)
+
           const turnEndedAt = parseInt(roundInfo.turnInfo[roundInfo.turnInfo.length - 1].turnEndedAt)
         const dateObj = new Date(parseInt(turnEndedAt) * 1000);
         const date = dateObj.toLocaleDateString(undefined, {
@@ -109,7 +110,7 @@ const BalanceAndHistory = () => {
           minute: '2-digit',
           hour12: false
         });
-        console.log(`Date ${date}`)
+  
         if (history.isWinner) {
           txHistory.push({
             date,
@@ -132,7 +133,7 @@ const BalanceAndHistory = () => {
     
     // Sort by roundId (newest first)
     txHistory.sort((a, b) => b.roundId - a.roundId);
-    console.log(`Tx History ${JSON.stringify(txHistory)}`)
+
     setTransactions(txHistory);
   };
 
@@ -156,20 +157,20 @@ const BalanceAndHistory = () => {
       new PublicKey(PROGRAM_ID)
     );
     
-    console.log('Derived player PDA:', playerPDA.toString());
+ 
     return playerPDA;
   };
 
   const fetchPlayerAccountInfo = async (playerKey) => {
     try {
-      console.log('Fetching player account info for:', playerKey);
+   
       
       // Derive player PDA
       const programId = new PublicKey(PROGRAM_ID);
       const playerPubkey = new PublicKey(playerKey);
       const playerPDA = await derivePlayerPDA(playerPubkey);
       
-      console.log('Player PDA:', playerPDA.toString());
+
       
       // Fetch account info
       const accountInfo = await connection.getAccountInfo(playerPDA);
@@ -178,12 +179,11 @@ const BalanceAndHistory = () => {
         console.log('No player account found');
         return null;
       }
-      
-      console.log('Account found! Data length:', accountInfo.data.length);
+
       
       // Decode the account data
       const decodedData = decodePlayerData(accountInfo.data);
-      console.log('Decoded player data:', JSON.stringify(decodedData));
+
       
       return decodedData;
       
@@ -196,7 +196,7 @@ const BalanceAndHistory = () => {
   // Render loading state if data isn't ready
   if (isLoading || !playerData) {
     return (
-      <div className="flex flex-col h-screen" style={{ backgroundColor: '#4400CE' }}>
+      <div className="flex flex-col min-h-screen bg-[#4400CE]">
         <Header />
         <div className="flex items-center justify-center h-full">
           <p className="text-white text-xl">Loading data...</p>
@@ -206,62 +206,64 @@ const BalanceAndHistory = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: '#4400CE' }}>
-      <Header />
+    <div className="flex flex-col min-h-screen bg-[#4400CE] overflow-hidden">
+      <Header className="flex-shrink-0" />
    
-      <div className="p-4">
-        <UserProfileCard />
-      </div>
+      <div className="overflow-y-auto flex-1 pb-6">
+        <div className="p-4">
+          <UserProfileCard />
+        </div>
 
-      {/* Action Buttons */}
-      <div className="mx-4 mt-4 flex gap-4">
-        <div className="flex-1 text-white text-xl font-semibold py-4 rounded-xl text-center border border-black">
-          Withdraw
-        </div>
-        <div className="flex-1 text-white text-xl font-semibold py-4 rounded-xl text-center border border-black">
-          Add
-        </div>
-      </div>
-
-      {/* Player Stats */}
-      <div className="mx-4 mt-4 flex gap-4">
-        <div className="flex-1 text-white text-xl font-semibold py-4 rounded-xl text-center border border-black">
-          Rounds
-          <br/>{playerData.totalRounds}
-        </div>
-        <div className="flex-1 text-white text-xl font-semibold py-4 rounded-xl text-center border border-black">
-          Bets
-          <br/>{playerData.totalBet} $ELON
-        </div>
-        <div className="flex-1 text-white text-xl font-semibold py-4 rounded-xl text-center border border-black">
-          Payout
-          <br/>{playerData.totalPayout} $ELON
-        </div>
-      </div>
-
-      {/* Transaction History */}
-      <div className="mx-4 mt-4 mb-6 flex flex-col gap-2">
-        <h2 className="text-white text-xl font-semibold mb-2">Transaction History</h2>
-        {transactions.length > 0 ? (
-          transactions.map((transaction, index) => (
-            <div 
-              key={index} 
-              className="flex justify-between text-white py-2 px-4 rounded-lg border border-black"
-            >
-              <div className="text-sm text-white">{transaction.date}</div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-white">{transaction.type}</span>
-                <span className={transaction.amount > 0 ? 'text-green-400' : 'text-red-400'}>
-                  {transaction.amount > 0 ? '+' : ''}{transaction.amount.toLocaleString()} $ELON
-                </span>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-white text-center py-4">
-            No transaction history found
+        {/* Action Buttons */}
+        <div className="mx-4 mt-4 flex gap-4">
+          <div className="flex-1 text-white text-xl font-semibold py-4 rounded-xl text-center border border-black">
+            Withdraw
           </div>
-        )}
+          <div className="flex-1 text-white text-xl font-semibold py-4 rounded-xl text-center border border-black">
+            Add
+          </div>
+        </div>
+
+        {/* Player Stats */}
+        <div className="mx-4 mt-4 flex gap-4">
+          <div className="flex-1 text-white text-xl font-semibold py-4 rounded-xl text-center border border-black">
+            Rounds
+            <br/>{playerData.totalRounds}
+          </div>
+          <div className="flex-1 text-white text-xl font-semibold py-4 rounded-xl text-center border border-black">
+            Bets
+            <br/>{playerData.totalBet} $ELON
+          </div>
+          <div className="flex-1 text-white text-xl font-semibold py-4 rounded-xl text-center border border-black">
+            Payout
+            <br/>{playerData.totalPayout} $ELON
+          </div>
+        </div>
+
+        {/* Transaction History */}
+        <div className="mx-4 mt-4 mb-6 flex flex-col gap-2">
+          <h2 className="text-white text-xl font-semibold mb-2">Transaction History</h2>
+          {transactions.length > 0 ? (
+            transactions.map((transaction, index) => (
+              <div 
+                key={index} 
+                className="flex justify-between text-white py-2 px-4 rounded-lg border border-black"
+              >
+                <div className="text-sm text-white">{transaction.date}</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-white min-w-[80px] text-right">{transaction.type}</span>
+                  <span className={transaction.amount > 0 ? 'text-green-400' : 'text-red-400'}>
+                    {transaction.amount > 0 ? '+' : ''}{transaction.amount.toLocaleString()} $ELON
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-white text-center py-4">
+              No transaction history found
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

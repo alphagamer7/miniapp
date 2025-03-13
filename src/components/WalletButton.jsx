@@ -6,7 +6,7 @@ const WalletButton = ({ isConnected, address, isLoading, onConnect, onDisconnect
         disabled={isLoading}
         className="w-full bg-transparent border border-black rounded-xl p-4 text-white text-xl text-center"
       >
-        {isLoading ? 'Connecting...' : 'Connect Wallet'}
+        {isLoading ? 'Connecting' : 'Connect Wallet'}
       </button>
     );
   }

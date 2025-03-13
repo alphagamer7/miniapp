@@ -303,7 +303,7 @@ const RoundDetailPage = () => {
           }
         }
       } catch (error) {
-        console.error("Failed to process transaction return:", error);
+        console.error("Failed to process transaction return: ", error);
         //alert("Error processing transaction: " + error.message);
       }
     }

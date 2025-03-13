@@ -219,6 +219,72 @@ publicly accessible static files are located. Remember
 to [configure](https://docs.ton.org/develop/dapps/ton-connect/manifest) this file according to your
 project's information.
 
+## CI/CD Pipeline Setup
+
+This project has been configured with a CI/CD pipeline that allows for automatic deployment to both development and production environments:
+
+- **Development environment**: Deployed to `https://alphagamer7.github.io/miniapp/`
+- **Production environment**: Deployed to `https://settld-lab.github.io/battle_royale_client/`
+
+### Setup Instructions
+
+To set up the CI/CD pipeline for both environments, follow these steps:
+
+1. **Generate SSH Deploy Keys**:
+   ```bash
+   # Generate deploy key for development repository
+   ssh-keygen -t rsa -b 4096 -C "github-actions-dev" -f deploy_key_dev -N ""
+   
+   # Generate deploy key for production repository
+   ssh-keygen -t rsa -b 4096 -C "github-actions-prod" -f deploy_key_prod -N ""
+   ```
+
+2. **Add Deploy Keys to GitHub Repositories**:
+   - Add the **public** key of `deploy_key_dev` to the `alphagamer7/miniapp` repository
+   - Add the **public** key of `deploy_key_prod` to the `settld-lab/battle_royale_client` repository
+   
+   Both keys should have write access to the respective repositories.
+
+3. **Add Repository Secrets**:
+   - Go to your GitHub repository settings
+   - Navigate to "Secrets and variables" > "Actions"
+   - Add the following secrets:
+     - `DEPLOY_KEY`: Contents of the private key of `deploy_key_dev`
+     - `PRODUCTION_DEPLOY_KEY`: Contents of the private key of `deploy_key_prod`
+
+### Usage
+
+The CI/CD pipeline will automatically deploy:
+- To the development environment when pushing to any branch other than `master`
+- To the production environment when pushing to the `master` branch
+
+#### Manual Deployments
+
+You can also manually trigger deployments using:
+
+1. **GitHub Actions**:
+   - Go to the "Actions" tab in your GitHub repository
+   - Select the "Deploy to GitHub Pages" workflow
+   - Click "Run workflow"
+   - Select the target environment (development or production)
+
+2. **Local Deployments**:
+   ```bash
+   # Deploy to development
+   npm run build:dev && npm run deploy:dev
+   
+   # Deploy to production
+   npm run build:prod && npm run deploy:prod
+   ```
+
+### Environment-specific Configurations
+
+The build process automatically sets the correct base path for each environment:
+- Development: `/miniapp/`
+- Production: `/battle_royale_client/`
+
+If you need to add more environment-specific configurations, you can extend the `vite.config.js` file or use environment variables with the `VITE_` prefix.
+
 ## Useful Links
 
 - [Platform documentation](https://docs.telegram-mini-apps.com/)

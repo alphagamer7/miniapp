@@ -1,19 +1,26 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+# Workflow for deploying to both development and production environments
+name: Deploy to GitHub Pages
 
 on:
-  # Runs on pushes targeting the default branch
+  # Runs on pushes targeting specific branches
   push:
-    branches: ['master']
-
+    branches: ['master', 'development']
+  
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - production
 
-# Sets the GITHUB_TOKEN permissions to allow deployment to GitHub Pages
+# Sets permissions
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 # Allow one concurrent deployment
 concurrency:
@@ -21,11 +28,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Single deploy job since we're just deploying
+  # Deploy job
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -35,23 +39,53 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
+      # Determine environment based on branch or workflow_dispatch input
+      - name: Determine environment
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "DEPLOY_ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "DEPLOY_ENV=production" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_ENV=development" >> $GITHUB_ENV
+          fi
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
+      # Build for development environment
+      - name: Build for development
+        if: env.DEPLOY_ENV == 'development'
+        run: |
+          echo "Building for development environment..."
+          npm run build -- --base=/miniapp/
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+      # Build for production environment
+      - name: Build for production
+        if: env.DEPLOY_ENV == 'production'
+        run: |
+          echo "Building for production environment..."
+          npm run build -- --base=/battle_royale_client/
+
+      # Deploy to development GitHub Pages
+      - name: Deploy to Development
+        if: env.DEPLOY_ENV == 'development'
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          # Upload dist repository
-          path: './dist'
+          folder: dist
+          repository-name: alphagamer7/miniapp
+          branch: gh-pages
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+      # Deploy to production GitHub Pages
+      - name: Deploy to Production
+        if: env.DEPLOY_ENV == 'production'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist
+          repository-name: settld-lab/battle_royale_client
+          branch: gh-pages
+          ssh-key: ${{ secrets.PRODUCTION_DEPLOY_KEY }}

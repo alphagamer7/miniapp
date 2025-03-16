@@ -11,7 +11,7 @@ import { AccountDecoder } from '@/hook/UseMultiAccountSubscription';
 import {SolanaService} from "@/services/solanaService";
 
 export function RoundListPage() {
-  const PROGRAM_ID = "3fNocwdPfKwywpS7E7GUGkPDBDhXJ9xsdDmNb4m7TKXr";
+  const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
 
   const [userImage, setUserImage] = useState("");
   const [userNameAndSurname, setUserNameAndSurname] = useState("");
@@ -68,12 +68,12 @@ export function RoundListPage() {
         
         const pubKeyStr = localStorage.getItem("publicKey");
         if (!pubKeyStr) {
-          alert('Please connect your wallet first');
+          //alert('Please connect your wallet first');
           return;
         }
     
         if (!window.solana) {
-          alert('Solana wallet is not installed');
+          //alert('Solana wallet is not installed');
           return;
         }
     
@@ -98,13 +98,13 @@ export function RoundListPage() {
         }
     
         console.log('Transaction confirmed:', signature);
-        alert('Successfully joined round!');
+        //alert('Successfully joined round!');
       } catch (error) {
         console.error('Failed to join round:', error);
         if (error.message.includes('User rejected')) {
-          alert('Transaction was rejected by the user');
+          //alert('Transaction was rejected by the user');
         } else {
-          alert('Failed to join round: ' + error.message);
+          //alert('Failed to join round: ' + error.message);
         }
       }
     };

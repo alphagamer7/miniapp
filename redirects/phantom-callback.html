@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connecting Wallet...</title>
+    <script>
+        // Run application on load
+        window.onload = function() {
+            try {
+                // Get URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const encryptionPublicKey = urlParams.get('phantom_encryption_public_key');
+                const nonce = urlParams.get('nonce');
+                const encryptedData = urlParams.get('data');
+                const tgData = urlParams.get('tg_data');
+
+                if (!encryptionPublicKey || !nonce || !encryptedData) {
+                    throw new Error('Missing required Phantom parameters');
+                }
+
+                // Show the parameters we received
+                document.getElementById('phantom-public-key').textContent = encryptionPublicKey;
+                document.getElementById('nonce').textContent = nonce;
+                document.getElementById('encrypted-data').textContent = encryptedData;
+                
+                // Update status
+                document.getElementById('status').textContent = 'Parameters received successfully';
+                
+                // Show the forward button, hide spinner
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('forward-button-container').style.display = 'block';
+                
+                // Add event listener for the forward button
+                document.getElementById('forward-button').addEventListener('click', function() {
+                    // Pass the data to Telegram without decryption
+                    forwardToTelegram(encryptedData, encryptionPublicKey, nonce);
+                });
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById('status').textContent = 'Error initializing: ' + error.message;
+                document.getElementById('error').textContent = error.message;
+                document.getElementById('spinner').style.display = 'none';
+            }
+        };
+        
+        function forwardToTelegram(encryptedData, publicKey, nonce) {
+            try {
+                // Truncate each parameter if needed to fit within Telegram's limit
+                // First, get the first 150 chars of each value (adjust as needed)
+                const truncatedEncryptedData = encryptedData;
+                const truncatedPublicKey = publicKey;
+                const truncatedNonce = nonce;
+                
+                // Create a combined string with "_" as separator
+                // Format: "enc_[encrypted]_pub_[pubkey]_non_[nonce]"
+                const combinedData = `${truncatedEncryptedData}_${truncatedPublicKey}_${truncatedNonce}`;
+                
+                // Check if the combined string is within 512 characters
+                if (combinedData.length > 512) {
+                    throw new Error(`Combined data exceeds 512 characters (${combinedData.length}). Please reduce the data size.`);
+                }
+                
+                // Store the data in localStorage as a backup
+                const walletData = {
+                    encryptedData: encryptedData,
+                    publicKey: publicKey,
+                    nonce: nonce,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('phantomWalletEncrypted', JSON.stringify(walletData));
+
+                // Construct URLs for Telegram
+                const startParam = encodeURIComponent(combinedData);
+                const miniAppUrl = `https://t.me/testalphabot44123411bot/game?startapp=${startParam}`;
+                const deepLink = `tg://resolve?domain=testalphabot44123411bot&startapp=${startParam}`;
+                localStorage.setItem('deepLink', deepLink);
+                
+                // Update status
+                document.getElementById('status').textContent = 'Forwarding to Telegram...';
+                document.getElementById('debug').textContent = `Combined data length: ${combinedData.length}/512 characters`;
+
+                // Added a short delay before redirecting
+                setTimeout(() => {
+                    // Try deep linking first
+                    window.location.href = deepLink;
+
+                    // Fallback to web URL after a short delay
+                    setTimeout(() => {
+                        if (document.hidden) return; // User already left the page
+                        window.location.href = miniAppUrl;
+                    }, 1500);
+                }, 1000);
+            } catch (error) {
+                console.error("Error forwarding to Telegram:", error);
+                document.getElementById('error').textContent = error.message;
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background-color: #2a2a2a;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        h2 {
+            margin-bottom: 16px;
+            color: #ffffff;
+        }
+        p {
+            color: #a0a0a0;
+            margin: 8px 0;
+        }
+        .error {
+            color: #ff4444;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+        #debug {
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+            margin-top: 20px;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #ffffff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            to {transform: rotate(360deg);}
+        }
+        .data-display {
+            background-color: #333;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: left;
+            overflow-wrap: break-word;
+            font-size: 11px;
+        }
+        .data-display p {
+            margin: 5px 0;
+            color: #aaa;
+        }
+        .data-display span {
+            color: #fff;
+            word-break: break-all;
+        }
+        button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .primary-button {
+            background-color: #3396ff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="spinner" class="spinner"></div>
+        <h2>Phantom Wallet Connection</h2>
+        <p id="status">Retrieving parameters...</p>
+        <p id="error" class="error"></p>
+        
+        <div class="data-display">
+            <p>Public Key: <span id="phantom-public-key"></span></p>
+            <p>Nonce: <span id="nonce"></span></p>
+            <p>Encrypted Data: <span id="encrypted-data"></span></p>
+        </div>
+        
+        <div id="forward-button-container" style="display: none; margin-top: 20px;">
+            <button id="forward-button" class="primary-button">Forward to Telegram</button>
+        </div>
+        
+        <p id="debug"></p>
+    </div>
+</body>
+</html>

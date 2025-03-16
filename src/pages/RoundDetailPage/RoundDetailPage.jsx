@@ -1,4 +1,4 @@
-import { ChevronLeft, MoreHorizontal } from "lucide-react";
+import { ChevronLeft, MoreHorizontal, AlertCircle, X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useGameData } from "@/provider/GameDataProvider";
@@ -11,6 +11,57 @@ import bs58 from "bs58";
 import nacl from "tweetnacl";
 import WebApp from '@twa-dev/sdk';
 import { PublicKey } from "@solana/web3.js";
+import { PhantomMobileService } from "@/services/phantomMobileService";
+import animationData from '@/assets/WaitingClock.json'
+import Lottie from 'lottie-react';
+const LottieAnimation = () => {
+  return (
+    <div className="lottie-container w-full h-64 flex items-center justify-center">
+      <Lottie 
+        animationData={animationData} 
+        loop={true}
+        autoplay={true}
+        style={{ width: '200px', height: '200px' }}
+        rendererSettings={{
+          preserveAspectRatio: 'xMidYMid meet'
+        }}
+        speed={1}
+      />
+    </div>
+  );
+};
+const JoiningModal = ({ onClose, entryFees }) => {
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#4400CE] rounded-xl p-6 max-w-md w-full border border-white/20">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-white text-xl font-bold">Joining Round</h2>
+          <button 
+            onClick={onClose} 
+            className="text-white hover:text-gray-300"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="w-full h-64 flex items-center justify-center mb-6">
+          <LottieAnimation />
+        </div>
+
+        <button className="w-full bg-transparent border border-black rounded-xl p-4 text-white text-xl text-center">
+          <div className="flex items-center justify-center gap-2">
+            <span>Joining Round ({entryFees || "0"} $ELON)...</span>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white"></div>
+          </div>
+        </button>
+        
+        <p className="text-white/70 text-center mt-4">
+          Please wait while we process your transaction
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const RoundDetailPage = () => {
   const navigate = useNavigate();
@@ -59,10 +110,7 @@ const RoundDetailPage = () => {
     const round = roundsData.find((r) => r.id === roundId);
     if (round) {
       setCurrentRound(round);
-      if (round.state === "Playing") {
-        console.log("Round is now playing, navigating to game board...");
-        navigate(`/turn-page/${roundId}`);
-      }
+     
     }
   }, [roundsData, roundId, navigate]);
 
@@ -76,7 +124,7 @@ const RoundDetailPage = () => {
       setConfirmedSlot(Date.now()); // Use timestamp as placeholder for slot
       setShowConfirmation(false);
       setIsJoining(false);
-      alert("Successfully joined round!");
+      // //alert("Successfully joined round!");
 
       // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -90,29 +138,29 @@ const RoundDetailPage = () => {
   const handleConfirmClick = async () => {
     try {
       setIsJoining(true);
-
       const pubKeyStr = localStorage.getItem("publicKey");
       if (!pubKeyStr) {
-        alert("Please connect your wallet first");
+        //alert("Please connect your wallet first");
         setIsJoining(false);
         return;
       }
-
-      const sessionToken = localStorage.getItem("session");
-      if (!sessionToken) {
-        alert("No wallet session found. Please reconnect your wallet.");
-        setIsJoining(false);
-        return;
-      }
+    
 
       // Detect if we're running inside Telegram
       const isTelegram = window.Telegram && window.Telegram.WebApp;
 
       // Check if browser extension is available for direct connection
       const hasPhantomExtension = window.solana && window.solana.isPhantom;
-
-      if (isTelegram || !hasPhantomExtension) {
+      console.log(`Is Telegram ${isTelegram}`)
+      console.log(`hasPhantomExtension ${!hasPhantomExtension}`)
+      if (isTelegram && !hasPhantomExtension) {
         // If in Telegram OR no extension available, use deep link flow
+        const sessionToken = localStorage.getItem("session");
+        if (!sessionToken) {
+          //alert("No wallet session found. Please reconnect your wallet.");
+          setIsJoining(false);
+          return;
+        }
         await handleMobileTransaction(pubKeyStr, sessionToken);
       } else {
         // Browser extension flow is only used when extension is detected
@@ -121,123 +169,171 @@ const RoundDetailPage = () => {
     } catch (error) {
       console.error("Failed to join round:", error);
       if (error.message.includes("User rejected")) {
-        alert("Transaction was rejected by the user");
+        //alert("Transaction was rejected by the user");
       } else {
-        alert("Failed to join round: " + error.message);
+        //alert("Failed to join round: " + error.message);
       }
       setIsJoining(false);
     }
   };
 
+  const handlePhantomTransactionReturn = (startParam) => {
+    try {
+      if (!startParam) return { success: false, error: "No transaction data found" };
+  
+      // Check if it starts with tx_ prefix
+      if (!startParam.startsWith('tx_')) {
+        return { success: false, error: "Invalid transaction data format" };
+      }
+  
+      // Remove tx_ prefix
+      const transactionData = startParam.substring(3);
+      
+      // Check if this is a shortened "success" message
+      if (transactionData.startsWith('success_')) {
+        // This is a shortened success message
+        // Try to retrieve full data from localStorage
+        const encryptedData = localStorage.getItem('phantom_transaction_data');
+        const nonce = localStorage.getItem('phantom_transaction_nonce');
+        
+        if (!encryptedData || !nonce) {
+          return { 
+            success: true, 
+            shortFormat: true,
+            error: "Transaction was successful but full data is not available"
+          };
+        }
+        
+        return {
+          success: true,
+          shortFormat: true,
+          encryptedData,
+          nonce
+        };
+      }
+      
+      // This should be the full format: encrypted_data_nonce
+      const parts = transactionData.split('_');
+      if (parts.length >= 2) {
+        // Last part is the nonce, everything before the last _ is the encrypted data
+        // (in case encrypted data itself contains underscores)
+        const nonce = parts[parts.length - 1];
+        const encryptedData = parts.slice(0, parts.length - 1).join('_');
+        
+        return {
+          success: true,
+          shortFormat: false,
+          encryptedData,
+          nonce
+        };
+      }
+      
+      return { success: false, error: "Invalid transaction data format" };
+    } catch (error) {
+      console.error("Error processing transaction return:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const decryptTransactionData = (encryptedData, nonce) => {
+    try {
+      // Get the necessary keys from localStorage
+      const secretKeyBase58 = localStorage.getItem("phantom_connection_secret_key");
+      if (!secretKeyBase58) {
+        throw new Error("Secret key not found. Please reconnect your wallet.");
+      }
+      
+      const phantomPublicKey = localStorage.getItem("phantom_public_key");
+      if (!phantomPublicKey) {
+        throw new Error("Phantom public key not found. Please reconnect your wallet.");
+      }
+      
+      // Decode from base58
+      const secretKey = bs58.decode(secretKeyBase58);
+      const phantomPublicKeyBytes = bs58.decode(phantomPublicKey);
+      const nonceBytes = bs58.decode(nonce);
+      const encryptedDataBytes = bs58.decode(encryptedData);
+      
+      // Create shared secret
+      const sharedSecret = nacl.box.before(phantomPublicKeyBytes, secretKey);
+      
+      // Decrypt the data
+      const decryptedBytes = nacl.box.open.after(encryptedDataBytes, nonceBytes, sharedSecret);
+      if (!decryptedBytes) {
+        throw new Error("Failed to decrypt transaction data");
+      }
+      
+      // Parse the JSON
+      const decryptedString = new TextDecoder().decode(decryptedBytes);
+      return JSON.parse(decryptedString);
+    } catch (error) {
+      console.error("Error decrypting transaction data:", error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    // Get startapp parameter from Telegram WebApp
+    const startParam = WebApp.initDataUnsafe.start_param || 
+                      new URLSearchParams(window.location.search).get('startapp');
+    //alert("Start param: " + startParam);
+    
+    if (startParam && startParam.startsWith('tx_')) {
+      try {
+        const transactionData = handlePhantomTransactionReturn(startParam);
+        
+        if (transactionData.success) {
+          if (transactionData.encryptedData && transactionData.nonce) {
+            const decryptedData = decryptTransactionData(
+              transactionData.encryptedData, 
+              transactionData.nonce
+            );
+            
+            // Handle successful transaction
+            if (decryptedData.signature) {
+              setConfirmedSlot(Date.now());
+              setIsJoining(false);
+              //alert("Successfully joined round with signature: " + decryptedData.signature);
+            }
+          } else {
+            // Handle success but no data case
+            setConfirmedSlot(Date.now());
+            setIsJoining(false);
+            //alert("Successfully joined round!");
+          }
+        }
+      } catch (error) {
+        console.error("Failed to process transaction return: ", error);
+        //alert("Error processing transaction: " + error.message);
+      }
+    }
+  }, []);
+
   const handleMobileTransaction = async (pubKeyStr, sessionToken) => {
     try {
-      alert("Starting mobile transaction flow");
-  
-      // Create the transaction
+      // Create and prepare the transaction
       const transaction = await SolanaService.createJoinRoundTransaction({
         connection,
         roundId,
         playerKey: pubKeyStr,
         tokenMint: userToken.mint,
       });
-  
-      alert(
-        `Transaction created:\nFeePayer: ${transaction.feePayer?.toBase58()}\nRecentBlockhash: ${
-          transaction.recentBlockhash
-        }\nInstructions: ${transaction.instructions.length}`
-      );
-  
-      // Serialize the transaction
-      const serializedTxn = transaction.serialize({ requireAllSignatures: false });
-      alert("Transaction serialized. Please confirm in your wallet.");
-      const serializedTransaction = bs58.encode(serializedTxn);
-      alert("Serialized transaction: " + serializedTransaction);
-  
-      // Get stored values
-      const dappEncryptionPublicKey = localStorage.getItem("phantom_connection_public_key");
-      if (!dappEncryptionPublicKey) {
-        throw new Error("DApp encryption public key not found. Please reconnect your wallet.");
-      }
-  
-      const userPublicKey = localStorage.getItem("publicKey");
-      if (!userPublicKey) {
-        throw new Error("User public key not found. Please reconnect your wallet.");
-      }
-  
-      const nonce = localStorage.getItem("phantom_nonce");
-      if (!nonce) {
-        throw new Error("Nonce not found. Please reconnect your wallet.");
-      }
-  
-      const secretKeyBase58 = localStorage.getItem("phantom_connection_secret_key");
-      if (!secretKeyBase58) {
-        throw new Error("DApp secret key not found. Please reconnect your wallet.");
-      }
-  
-      // Decode keys and nonce
-      const secretKey = bs58.decode(secretKeyBase58);
-      const nonceBytes = bs58.decode(nonce);
-      const userPublicKeyBytes = bs58.decode(userPublicKey);
-  
-      // Validate lengths
-      if (secretKey.length !== 32) {
-        throw new Error(`Invalid secret key length: ${secretKey.length}, expected 32`);
-      }
-      if (userPublicKeyBytes.length !== 32) {
-        throw new Error(`Invalid user public key length: ${userPublicKeyBytes.length}, expected 32`);
-      }
-      if (nonceBytes.length !== 24) {
-        throw new Error(`Invalid nonce length: ${nonceBytes.length}, expected 24`);
-      }
-  
-      alert(
-        `Keys validated:\nDApp Public Key: ${dappEncryptionPublicKey}\nUser Public Key: ${userPublicKey}\nNonce: ${nonce}`
-      );
-  
-      // Create payload
-      const payload = {
-        transaction: serializedTransaction,
-        session: sessionToken,
-      };
-      const payloadString = JSON.stringify(payload);
-      alert("Payload before encryption: " + payloadString);
-  
-      // Encrypt payload
-      const messageBytes = new TextEncoder().encode(payloadString);
-      const sharedSecret = nacl.box.before(userPublicKeyBytes, secretKey);
-      const encryptedPayloadBytes = nacl.box.after(messageBytes, nonceBytes, sharedSecret);
-  
-      if (!encryptedPayloadBytes) {
-        throw new Error(
-          "Encryption failed. Check key pair or nonce.\n" +
-            `Secret key length: ${secretKey.length}\nUser PK length: ${userPublicKeyBytes.length}\nNonce length: ${nonceBytes.length}`
-        );
-      }
-      const encryptedPayload = bs58.encode(encryptedPayloadBytes);
-      // alert("Encrypted payload: " + encryptedPayload);
-  
-      const redirectUrl = "https://thealphanova.com/phantom-transaction.html";
+
+      // Serialize and prepare the transaction payload
+      const serializedTransaction = await PhantomMobileService.prepareTransaction(transaction);
+      const payload = PhantomMobileService.createTransactionPayload(serializedTransaction, sessionToken);
+
+      // Create the Phantom URL for signing and sending
+      const phantomUrl = await PhantomMobileService.createSignAndSendUrl(payload);
+
+      // Store current round ID for the callback
       localStorage.setItem("current_round_id", roundId);
-  
-      const baseUrl = "https://phantom.app/ul/v1/signAndSendTransaction";
-      const params = new URLSearchParams({
-        dapp_encryption_public_key: dappEncryptionPublicKey,
-        nonce: nonce,
-        redirect_link: redirectUrl,
-        payload: payloadString,
-      });
-  
-      const phantomUrl = `${baseUrl}?${params.toString()}`;
-      // alert(`Generated Phantom URL (truncated): ${phantomUrl.substring(0, 100)}...`);
-  
-      // Open in Telegram
-      // WebApp.openLink(phantomUrl);
-       WebApp.openLink(phantomUrl, {
-                try_instant_view: false
-              });
+
+      // Open in Telegram mini app browser
+      WebApp.openLink(phantomUrl, { try_instant_view: false });
+      navigate(`/waiting-turn-page/${roundId}`);
     } catch (error) {
       console.error("Mobile transaction error:", error);
-      alert("Transaction error: " + error.message);
       throw error;
     }
   };
@@ -245,9 +341,15 @@ const RoundDetailPage = () => {
   // Handle transaction through Phantom browser extension
   const handleBrowserTransaction = async (pubKeyStr) => {
     try {
+      setIsJoining(true);
+  
+      const pubKeyStr = localStorage.getItem("publicKey");
+      if (!pubKeyStr) {
+        //alert('Please connect your wallet first');
+        return;
+      }
       if (!window.solana || !window.solana.isPhantom) {
-        alert("Please install Phantom wallet");
-        setIsJoining(false);
+        //alert('Please install Phantom wallet');
         return;
       }
 
@@ -255,19 +357,15 @@ const RoundDetailPage = () => {
         try {
           await window.solana.connect();
         } catch (err) {
-          console.error("Failed to connect wallet:", err);
-          alert("Failed to connect wallet. Please try again.");
-          setIsJoining(false);
+          console.error('Failed to connect wallet:', err);
+          //alert('Failed to connect wallet. Please try again.');
           return;
         }
       }
 
       const connectedPubKey = window.solana.publicKey.toString();
       if (connectedPubKey !== pubKeyStr) {
-        alert(
-          "Connected wallet does not match stored wallet. Please reconnect."
-        );
-        setIsJoining(false);
+        //alert('Connected wallet does not match stored wallet. Please reconnect.');
         return;
       }
 
@@ -275,32 +373,35 @@ const RoundDetailPage = () => {
         connection,
         roundId,
         playerKey: pubKeyStr,
-        tokenMint: userToken.mint,
+        tokenMint: userToken.mint
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const signed = await window.solana.signTransaction(transaction);
+      console.log(`Signed ${JSON.stringify(signed)}`)
+      console.log(`Signed Serialize ${signed.serialize()}`)
       const signature = await connection.sendRawTransaction(signed.serialize());
-
+      
       const confirmation = await connection.confirmTransaction(signature);
       if (confirmation.value.err) {
-        throw new Error(
-          "Transaction failed: " + JSON.stringify(confirmation.value.err)
-        );
+        throw new Error('Transaction failed: ' + JSON.stringify(confirmation.value.err));
       }
 
-      const { slot } = await AccountDecoder.subscribeToSignature(
-        connection,
-        signature
-      );
+      const { slot } = await AccountDecoder.subscribeToSignature(connection, signature);
       setConfirmedSlot(slot);
       setShowConfirmation(false);
-      setIsJoining(false);
-      alert("Successfully joined round!");
+      alert('Successfully joined round!');
+      navigate(`/waiting-turn-page/${roundId}`);
     } catch (error) {
-      console.error("Browser transaction error:", error);
-      throw error;
+      console.error('Failed to join round:', error);
+      if (error.message.includes('User rejected')) {
+        //alert('Transaction was rejected by the user');
+      } else {
+        //alert('Failed to join round: ' + error.message);
+      }
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -324,7 +425,7 @@ const RoundDetailPage = () => {
       return (
         <button className="w-full bg-transparent border border-black rounded-xl p-4 text-white text-xl text-center">
           <div className="flex items-center justify-center gap-2">
-            <span>Joining Round...</span>
+            <span>Processing...</span>
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white"></div>
           </div>
         </button>
@@ -364,19 +465,23 @@ const RoundDetailPage = () => {
       );
     }
 
+    const hasJoined = currentRound.players.includes(userPublicKey);
     return (
       <button
-        onClick={handleJoinClick}
-        className="w-full bg-transparent border border-black rounded-xl p-4 text-white text-xl text-center"
+        onClick={hasJoined ? undefined : handleJoinClick}
+        disabled={hasJoined}
+        className={`w-full bg-transparent border border-black rounded-xl p-4 text-xl text-center ${
+          hasJoined ? 'text-green-400 cursor-not-allowed' : 'text-white'
+        }`}
       >
-        Join ({currentRound.entryFees?.toString() || "0"} $ELON)
+        {hasJoined ? 'Joined' : 'Join'} ({currentRound.entryFees?.toString() || "0"} $ELON)
       </button>
     );
   };
 
   return (
     <div
-      className="h-screen w-full flex flex-col"
+      className="min-h-screen w-full flex flex-col"
       style={{ backgroundColor: "#4400CE" }}
     >
       <Header />
@@ -426,6 +531,13 @@ const RoundDetailPage = () => {
           </button>
         </div>
       </div>
+
+      {isJoining && (
+        <JoiningModal 
+          onClose={() => setIsJoining(false)} 
+          entryFees={currentRound.entryFees?.toString()}
+        />
+      )}
     </div>
   );
 };

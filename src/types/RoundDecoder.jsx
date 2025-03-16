@@ -1,91 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
 
-
-
-// export const decodeRoundData = (data) => {
-//   // Create a DataView from the buffer
-//   const dataView = new DataView(data.buffer, data.byteOffset, data.length);
-//   let offset = 8; // Skip the 8-byte discriminator
-//   const decoder = new TextDecoder("utf-8"); // Create a TextDecoder instance for UTF-8 encoding
-
-//   // Helper function to read PublicKey
-//   const readPubkey = () => {
-//     const pubkey = new PublicKey(data.slice(offset, offset + 32));
-//     offset += 32;
-//     return pubkey;
-//   };
-
-//   try {
-//     // ID (26 bytes)
-//     const id = decoder.decode(data.slice(offset, offset + 26));
-//     offset += 26;
-
-//     // Game PublicKey (32 bytes)
-//     const game = readPubkey();
-
-//     // Operator PublicKey (32 bytes)
-//     const operator = readPubkey();
-
-//     // Max players (u16)
-//     const maxPlayers = dataView.getUint16(offset, true);
-//     offset += 2;
-
-//     // Min players (u16)
-//     const minPlayers = dataView.getUint16(offset, true);
-//     offset += 2;
-
-//     // Entry fees (u64) - Convert BigInt to string
-//     const entryFees = dataView.getBigUint64(offset, true).toString();
-//     offset += 8;
-
-//     // Total turns (u8)
-//     const totalTurns = dataView.getUint8(offset);
-//     offset += 1;
-
-//     // State (u8, as an Enum)
-//     const stateValue = dataView.getUint8(offset);
-//     const state = ['Published', 'Started', 'Playing', 'Resulted', 'Closed'][stateValue];
-//     offset += 1;
-
-//     // Players vector
-//     const playersLength = dataView.getUint32(offset, true);
-//     offset += 4;
-    
-//     const players = [];
-//     for (let i = 0; i < playersLength; i++) {
-//       const player = readPubkey();
-//       players.push(player);
-//     }
-
-//     // Token Mint PublicKey (32 bytes)
-//     const tokenMint = readPubkey();
-
-//     // Round Vault PublicKey (32 bytes)
-//     const roundVault = readPubkey();
-
-//     // Bump (u8)
-//     const bump = dataView.getUint8(offset);
-
-//     return {
-//       id,
-//       game: game.toBase58(),
-//       operator: operator.toBase58(),
-//       maxPlayers,
-//       minPlayers,
-//       entryFees,  // Now returns as string instead of BigInt
-//       totalTurns,
-//       state,
-//       players: players.map(p => p.toBase58()),
-//       tokenMint: tokenMint.toBase58(),
-//       roundVault: roundVault.toBase58(),
-//       bump
-//     };
-//   } catch (error) {
-//     throw new Error(`Failed to decode round data: ${error.message}`);
-//   }
-// };
-
-
 // *********************************************************************************************
 
 
@@ -138,29 +52,36 @@ export const decodeRoundData = (data) => {
   };
 
   try {
-    // ID (u64)
-    const id = dataView.getBigUint64(offset, true).toString();
-    offset += 8;
+    // Version (u8)
+    const version = dataView.getUint8(offset);
+    offset += 1;
 
-    // Game PublicKey
-    const game = readPubkey();
+    // ID (u32)
+    const id = dataView.getUint32(offset, true);
+    offset += 4;
+
+    // Game ID (u64)
+    const gameId = dataView.getBigUint64(offset, true).toString();
+    offset += 8;
 
     // Operator PublicKey
     const operator = readPubkey();
 
-    // Token Mint PublicKey
-    const tokenMint = readPubkey();
+    // Players vector
+    const playersLength = dataView.getUint32(offset, true);
+    offset += 4;
+    const players = [];
+    for (let i = 0; i < playersLength; i++) {
+      players.push(readPubkey().toBase58());
+    }
 
-    // Round Vault PublicKey
-    const roundVault = readPubkey();
+    // Max players (u8)
+    const maxPlayers = dataView.getUint8(offset);
+    offset += 1;
 
-    // Max players (u16)
-    const maxPlayers = dataView.getUint16(offset, true);
-    offset += 2;
-
-    // Min players (u16)
-    const minPlayers = dataView.getUint16(offset, true);
-    offset += 2;
+    // Min players (u8)
+    const minPlayers = dataView.getUint8(offset);
+    offset += 1;
 
     // Entry fees (u64)
     const entryFees = dataView.getBigUint64(offset, true).toString();
@@ -171,26 +92,13 @@ export const decodeRoundData = (data) => {
     const state = ['Published', 'Started', 'Playing', 'Resulted', 'Closed'][stateValue];
     offset += 1;
 
-    // Max turns (u8)
-    const maxTurns = dataView.getUint8(offset);
+    // Total turns (u8)
+    const totalTurns = dataView.getUint8(offset);
     offset += 1;
-
-    // Max eliminated (u16)
-    const maxEliminated = dataView.getUint16(offset, true);
-    offset += 2;
 
     // Current turn (u8)
     const currentTurn = dataView.getUint8(offset);
     offset += 1;
-
-    // Players vector
-    const playersLength = dataView.getUint32(offset, true);
-    offset += 4;
-    const players = [];
-    for (let i = 0; i < playersLength; i++) {
-      const player = readPubkey();
-      players.push(player);
-    }
 
     // Turn info vector
     const turnInfoLength = dataView.getUint32(offset, true);
@@ -201,50 +109,74 @@ export const decodeRoundData = (data) => {
       const index = dataView.getUint8(offset);
       offset += 1;
 
-      // Survival player indexes
-      const survivalLength = dataView.getUint32(offset, true);
-      offset += 4;
-      const survivalPlayerIndexes = [];
-      for (let j = 0; j < survivalLength; j++) {
-        survivalPlayerIndexes.push(dataView.getUint16(offset, true));
-        offset += 2;
-      }
-
       // Eliminated player indexes
       const eliminatedLength = dataView.getUint32(offset, true);
       offset += 4;
       const eliminatedPlayerIndexes = [];
       for (let j = 0; j < eliminatedLength; j++) {
-        eliminatedPlayerIndexes.push(dataView.getUint16(offset, true));
-        offset += 2;
+        eliminatedPlayerIndexes.push(dataView.getUint8(offset));
+        offset += 1;
       }
+
+      // Turn ended at (i64)
+      const turnEndedAt = dataView.getBigInt64(offset, true);
+      offset += 8;
 
       turnInfo.push({
         index,
-        survivalPlayerIndexes,
         eliminatedPlayerIndexes,
+        turnEndedAt: turnEndedAt.toString()
       });
     }
 
+    // Schedule start time (i64)
+    const scheduleStartTime = dataView.getBigInt64(offset, true).toString();
+    offset += 8;
+
+    // Turn interval seconds (u16)
+    const turnIntervalSeconds = dataView.getUint16(offset, true);
+    offset += 2;
+
+    // Started at (i64)
+    const startedAt = dataView.getBigInt64(offset, true).toString();
+    offset += 8;
+
+    // Ended at (i64)
+    const endedAt = dataView.getBigInt64(offset, true).toString();
+    offset += 8;
+
+    // Round vault bump (u8)
+    const roundVaultBump = dataView.getUint8(offset);
+    offset += 1;
+
     // Bump (u8)
     const bump = dataView.getUint8(offset);
+    offset += 1;
+
+    // Reserved (32 bytes)
+    const reserved = Array.from(data.slice(offset, offset + 32));
+    offset += 32;
 
     return {
+      version,
       id,
-      game: game.toBase58(),
+      gameId,
       operator: operator.toBase58(),
-      tokenMint: tokenMint.toBase58(),
-      roundVault: roundVault.toBase58(),
+      players,
       maxPlayers,
       minPlayers,
       entryFees,
       state,
-      maxTurns,
-      maxEliminated,
+      totalTurns,
       currentTurn,
-      players: players.map(p => p.toBase58()),
       turnInfo,
-      bump
+      scheduleStartTime,
+      turnIntervalSeconds,
+      startedAt,
+      endedAt,
+      roundVaultBump,
+      bump,
+      reserved: reserved.map(byte => byte.toString(16).padStart(2, '0')).join('')
     };
   } catch (error) {
     throw new Error(`Failed to decode round data: ${error.message}`);

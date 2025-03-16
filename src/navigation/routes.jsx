@@ -13,6 +13,8 @@ import HomePage from '@/pages/HomePage/HomePage';
 import RoundList from '@/pages/RoundListPage/RoundListPage2';
 import RoundDetailPage from '@/pages/RoundDetailPage/RoundDetailPage';
 import TurnPage from '@/pages/TurnPage/TurnPage';
+import WaitingTurnPage from '@/pages/WaitingTurnPage/WaitingTurnPage';
+import BalanceAndHistory from '@/pages/Menu/BalanceAndHistory';
 
 /**
  * @typedef {object} Route
@@ -27,7 +29,8 @@ import TurnPage from '@/pages/TurnPage/TurnPage';
  */
 export const routes = [
   { path: '/', Component: HomePage },
-  { path: '/home', Component: HomePage },
+  { path: '/home', Component: LoginScreen },
+  { path: '/balence-history', Component: BalanceAndHistory },
   { path: '/round-list1', Component: RoundList },
   { path: '/round-detail/:roundId', Component: RoundDetailPage },
   { path: '/user-data', Component: IndexPage },
@@ -39,6 +42,7 @@ export const routes = [
   { path: '/my-assets', Component: MyAssetsPage, title: 'My Assets' },
   { path: '/player-info', Component: PlayerInfoPage, title: 'My Assets' },
   { path: '/turn-page/:roundId', Component: TurnPage, title: 'My Assets' },
+  { path: '/waiting-turn-page/:roundId', Component: WaitingTurnPage, title: 'My Assets' },
   
   // { path: '/', Component: RoundListPage, title: 'Display Data' },
   // {

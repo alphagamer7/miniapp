@@ -11,7 +11,7 @@ export function PlayerInfoPage() {
     const [playerData, setPlayerData] = useState(null);
     const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
     // const GAME_ID = "1741053547878"; 
-    const GAME_ID = "1741827653264"; 
+    const GAME_ID = "1741655861356";
       const { gameData, connection } = useGameData();
     useEffect(() => {
         const loadPlayerData = async () => {

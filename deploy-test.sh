@@ -15,9 +15,9 @@ if [ "$ENV" = "prod" ]; then
   echo "🔨 Building for production..."
   npm run build -- --base=/battle_royale_client/
   
-  # Deploy directly to GitHub Pages using gh-pages
+  # Deploy directly to GitHub Pages using gh-pages with SSH URL
   echo "🚀 Deploying directly to GitHub Pages..."
-  npx gh-pages -d dist -b gh-pages -r https://github.com/settld-lab/battle_royale_client.git
+  npx gh-pages -d dist -b gh-pages -r git@github.com:settld-lab/battle_royale_client.git
   
   echo "✅ Test deployment completed. Check https://settld-lab.github.io/battle_royale_client/"
 elif [ "$ENV" = "dev" ]; then
@@ -25,9 +25,9 @@ elif [ "$ENV" = "dev" ]; then
   echo "🔨 Building for development..."
   npm run build -- --base=/miniapp/
   
-  # Deploy to dev repo
+  # Deploy to dev repo using SSH URL
   echo "🚀 Deploying to development repository..."
-  npx gh-pages -d dist -b gh-pages -r https://github.com/alphagamer7/miniapp.git
+  npx gh-pages -d dist -b gh-pages -r git@github.com:alphagamer7/miniapp.git
   
   echo "✅ Test deployment completed. Check https://alphagamer7.github.io/miniapp/"
 else

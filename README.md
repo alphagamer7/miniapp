@@ -42,250 +42,77 @@ npm run {script}
 # Example: npm run build
 ```
 
-## Create Bot and Mini App
+## Deployment to Development and Production
 
-Before you start, make sure you have already created a Telegram Bot. Here is
-a [comprehensive guide](https://docs.telegram-mini-apps.com/platform/creating-new-app) on how to
-do it.
+This project is configured to support both development and production environments. The primary differences between these environments include the base paths and deployment repositories:
 
-## Run
+### Deployment Environments
 
-Although Mini Apps are designed to be opened
-within [Telegram applications](https://docs.telegram-mini-apps.com/platform/about#supported-applications),
-you can still develop and test them outside of Telegram during the development process.
+- **Development Environment**:
+  - Base Path: `/miniapp/`
+  - Deployed to: `https://alphagamer7.github.io/miniapp/`
+  - Repository: `git@github.com:alphagamer7/miniapp.git`
 
-To run the application in the development mode, use the `dev` script:
+- **Production Environment**:
+  - Base Path: `/battle_royale_client/`
+  - Deployed to: `https://settld-lab.github.io/battle_royale_client/`
+  - Repository: `git@github.com:settld-lab/battle_royale_client.git`
 
-```bash
-npm run dev
-```
+### Manual Deployment Instructions
 
-After this, you will see a similar message in your terminal:
+A convenient deployment script is included that handles building with the correct configuration and deploying to the appropriate repository:
 
-```bash
-VITE v5.2.12  ready in 237 ms
-
-➜  Local:   http://localhost:5173/reactjs-js-tsdk-template
-➜  Network: http://172.18.16.1:5173/reactjs-js-tsdk-template
-➜  Network: http://172.19.32.1:5173/reactjs-js-tsdk-template
-➜  Network: http://192.168.0.171:5173/reactjs-js-tsdk-template
-➜  press h + enter to show help
-```
-
-Here, you can see the `Local` link, available locally, and `Network` links accessible to all
-devices in the same network with the current device.
-To view the application, you need to open the `Local`
-link (`http://localhost:5173/reactjs-js-tsdk-template` in this example) in your browser:
-
-![Application](assets/application.png)
-
-### Run Inside Telegram
-
-Although it is possible to run the application outside of Telegram, it is recommended to develop it
-within Telegram for the most accurate representation of its real-world functionality.
-
-To run the application inside Telegram, [@BotFather](https://t.me/botfather) requires an HTTPS link.
-
-This template already provides a solution.
-
-Navigate to the `vite.config.js` file and uncomment the usage of the `basicSsl` function. This
-function utilizes
-the [@vitejs/plugin-basic-ssl](https://www.npmjs.com/package/@vitejs/plugin-basic-ssl) plugin, which
-enables the creation of an HTTPS link. Note that this plugin generates a self-signed certificate,
-which browsers will recognize as unsafe, resulting in a warning when accessing the app.
-
-After uncommenting the function, run the `dev` script again and observe the output in your terminal:
+#### Deploy to Development Environment
 
 ```bash
-VITE v5.2.12  ready in 265 ms
-
-➜  Local:   https://localhost:5173/reactjs-js-tsdk-template
-➜  Network: https://172.18.16.1:5173/reactjs-js-tsdk-template
-➜  Network: https://172.19.32.1:5173/reactjs-js-tsdk-template
-➜  Network: https://192.168.0.171:5173/reactjs-js-tsdk-template
-➜  press h + enter to show help
+# Deploy to development
+./deploy.sh dev
 ```
 
-Visiting the `Local` link (`https://localhost:5173/reactjs-js-tsdk-template` in this example) in your
-browser, you will see the following warning:
+This command will:
+1. Build the app with the correct development base path (`/miniapp/`)
+2. Deploy the built files to the development repository
+3. Make the app available at `https://alphagamer7.github.io/miniapp/`
 
-![SSL Warning](assets/ssl-warning.png)
-
-This browser warning is normal and can be safely ignored as long as the site is secure. Click
-the `Proceed to localhost (unsafe)` button to continue and view the application.
-
-Once the application is displayed correctly, submit one of the `Network` links as the Mini App link
-to [@BotFather](https://t.me/botfather). Then, navigate
-to [https://web.telegram.org/k/](https://web.telegram.org/k/), find your bot, and launch the
-Telegram Mini App. This approach provides the full development experience.
-
-> **Important**
->
-> Because we are using self-signed SSL certificates, the Android and iOS Telegram applications will
-> not be able to display the application. These operating systems enforce stricter security
-> measures, preventing the Mini App from loading. To address this issue, refer
-> to [this guide](https://docs.telegram-mini-apps.com/platform/getting-app-link#remote).
-
-## Deploy
-
-This boilerplate uses GitHub Pages as the way to host the application externally. GitHub Pages
-provides a CDN which will let your users receive the application rapidly. Alternatively, you could
-use such services as [Heroku](https://www.heroku.com/) or [Vercel](https://vercel.com).
-
-### Manual Deployment
-
-This boilerplate uses the [gh-pages](https://www.npmjs.com/package/gh-pages) tool, which allows
-deploying your application right from your PC.
-
-#### Configuring
-
-Before running the deployment process, ensure that you have done the following:
-
-1. Replaced the `homepage` value in `package.json`. The GitHub Pages deploy tool uses this value to
-   determine the related GitHub project.
-2. Replaced the `base` value in `vite.config.js` and have set it to the name of your GitHub
-   repository. Vite will use this value when creating paths to static assets.
-
-For instance, if your GitHub username is `telegram-mini-apps` and the repository name
-is `is-awesome`, the value in the `homepage` field should be the following:
-
-```json
-{
-  "homepage": "https://telegram-mini-apps.github.io/is-awesome"
-}
-```
-
-And `vite.config.js` should have this content:
-
-```ts
-export default defineConfig({
-  base: '/is-awesome/',
-  // ...
-});
-```
-
-You can find more information on configuring the deployment in the `gh-pages`
-[docs](https://github.com/tschaub/gh-pages?tab=readme-ov-file#github-pages-project-sites).
-
-#### Before Deploying
-
-Before deploying the application, make sure that you've built it and going to deploy the fresh
-static files:
+#### Deploy to Production Environment
 
 ```bash
-npm run build
+# Deploy to production
+./deploy.sh prod
 ```
 
-Then, run the deployment process, using the `deploy` script:
+This command will:
+1. Build the app with the correct production base path (`/battle_royale_client/`)
+2. Verify that the asset paths in the built files are correct
+3. Deploy the built files to the production repository
+4. Make the app available at `https://settld-lab.github.io/battle_royale_client/`
 
-```Bash
-npm run deploy
+### Automated CI/CD Pipeline
+
+This project also includes a GitHub Actions workflow for automated deployments:
+
+- The workflow is defined in `.github/workflows/github-pages-deploy.yml`
+- It automatically deploys:
+  - To development environment when changes are pushed to the `development` branch
+  - To production environment when changes are pushed to the `master` branch
+- You can also manually trigger a deployment from the GitHub Actions tab by selecting the desired environment
+
+#### CI/CD Setup Requirements
+
+To set up the CI/CD pipeline, you'll need to configure the following secrets in your GitHub repository:
+
+1. `DEPLOY_KEY`: SSH key with write access to the development repository (`alphagamer7/miniapp`)
+2. `PRODUCTION_DEPLOY_KEY`: SSH key with write access to the production repository (`settld-lab/battle_royale_client`)
+
+To generate and set up these keys:
+
+```bash
+# Generate deploy key for development repository
+ssh-keygen -t rsa -b 4096 -C "github-actions-dev" -f deploy_key_dev -N ""
+
+# Generate deploy key for production repository
+ssh-keygen -t rsa -b 4096 -C "github-actions-prod" -f deploy_key_prod -N ""
+
+# Add the public keys to the respective repositories as deploy keys with write access
+# Add the private keys to your GitHub repository secrets
 ```
-
-After the deployment completed successfully, visit the page with data according to your
-username and repository name. Here is the page link example using the data mentioned above:
-https://telegram-mini-apps.github.io/is-awesome
-
-### GitHub Workflow
-
-To simplify the deployment process, this template includes a
-pre-configured [GitHub workflow](.github/workflows/github-pages-deploy.yml) that automatically
-deploys the project when changes are pushed to the `master` branch.
-
-To enable this workflow, create a new environment (or edit the existing one) in the GitHub
-repository settings and name it `github-pages`. Then, add the `master` branch to the list of
-deployment branches.
-
-You can find the environment settings using this
-URL: `https://github.com/{username}/{repository}/settings/environments`.
-
-![img.png](.github/deployment-branches.png)
-
-In case, you don't want to do it automatically, or you don't use GitHub as the project codebase,
-remove the `.github` directory.
-
-### GitHub Web Interface
-
-Alternatively, developers can configure automatic deployment using the GitHub web interface. To do
-this, follow the link: `https://github.com/{username}/{repository}/settings/pages`.
-
-## TON Connect
-
-This boilerplate utilizes the [TON Connect](https://docs.ton.org/develop/dapps/ton-connect/overview)
-project to demonstrate how developers can integrate functionality related to TON cryptocurrency.
-
-The TON Connect manifest used in this boilerplate is stored in the `public` folder, where all
-publicly accessible static files are located. Remember
-to [configure](https://docs.ton.org/develop/dapps/ton-connect/manifest) this file according to your
-project's information.
-
-## CI/CD Pipeline Setup
-
-This project has been configured with a CI/CD pipeline that allows for automatic deployment to both development and production environments:
-
-- **Development environment**: Deployed to `https://alphagamer7.github.io/miniapp/`
-- **Production environment**: Deployed to `https://settld-lab.github.io/battle_royale_client/`
-
-### Setup Instructions
-
-To set up the CI/CD pipeline for both environments, follow these steps:
-
-1. **Generate SSH Deploy Keys**:
-   ```bash
-   # Generate deploy key for development repository
-   ssh-keygen -t rsa -b 4096 -C "github-actions-dev" -f deploy_key_dev -N ""
-   
-   # Generate deploy key for production repository
-   ssh-keygen -t rsa -b 4096 -C "github-actions-prod" -f deploy_key_prod -N ""
-   ```
-
-2. **Add Deploy Keys to GitHub Repositories**:
-   - Add the **public** key of `deploy_key_dev` to the `alphagamer7/miniapp` repository
-   - Add the **public** key of `deploy_key_prod` to the `settld-lab/battle_royale_client` repository
-   
-   Both keys should have write access to the respective repositories.
-
-3. **Add Repository Secrets**:
-   - Go to your GitHub repository settings
-   - Navigate to "Secrets and variables" > "Actions"
-   - Add the following secrets:
-     - `DEPLOY_KEY`: Contents of the private key of `deploy_key_dev`
-     - `PRODUCTION_DEPLOY_KEY`: Contents of the private key of `deploy_key_prod`
-
-### Usage
-
-The CI/CD pipeline will automatically deploy:
-- To the development environment when pushing to any branch other than `master`
-- To the production environment when pushing to the `master` branch
-
-#### Manual Deployments
-
-You can also manually trigger deployments using:
-
-1. **GitHub Actions**:
-   - Go to the "Actions" tab in your GitHub repository
-   - Select the "Deploy to GitHub Pages" workflow
-   - Click "Run workflow"
-   - Select the target environment (development or production)
-
-2. **Local Deployments**:
-   ```bash
-   # Deploy to development
-   npm run build:dev && npm run deploy:dev
-   
-   # Deploy to production
-   npm run build:prod && npm run deploy:prod
-   ```
-
-### Environment-specific Configurations
-
-The build process automatically sets the correct base path for each environment:
-- Development: `/miniapp/`
-- Production: `/battle_royale_client/`
-
-If you need to add more environment-specific configurations, you can extend the `vite.config.js` file or use environment variables with the `VITE_` prefix.
-
-## Useful Links
-
-- [Platform documentation](https://docs.telegram-mini-apps.com/)
-- [Telegram developers community chat](https://t.me/devs)

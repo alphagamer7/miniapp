@@ -7,16 +7,26 @@ import tailwindcss from '@tailwindcss/vite'
 import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill'
 // battle_royale_client
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
+  // Load environment variables
+  const env = loadEnv(mode, process.cwd(), '');
+  
   // Determine the base path based on the environment
   let basePath = '/battle_royale_client/';
   
-  // Check if environment is development
-  if (process.env.VITE_ENV === 'development' || mode === 'development') {
+  // Override with command line base if specified
+  if (command === 'build' && process.argv.includes('--base')) {
+    const baseArgIndex = process.argv.indexOf('--base');
+    if (baseArgIndex !== -1 && baseArgIndex + 1 < process.argv.length) {
+      basePath = process.argv[baseArgIndex + 1];
+    }
+  }
+  // Otherwise check environment
+  else if (env.VITE_ENV === 'development' || mode === 'development') {
     basePath = '/miniapp/';
   }
   
-  console.log(`Building for ${process.env.VITE_ENV || mode} with base path: ${basePath}`);
+  console.log(`Building for ${env.VITE_ENV || mode} with base path: ${basePath}`);
   
   return {
     base: basePath,

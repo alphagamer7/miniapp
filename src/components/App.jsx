@@ -1,6 +1,6 @@
 import WebApp from '@twa-dev/sdk';
 import { AppRoot } from '@telegram-apps/telegram-ui';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   Navigate,
   Route,
@@ -51,12 +51,23 @@ function NavigationHandler() {
  * @return {JSX.Element}
  */
 export function App() {
+  // Determine the basename based on the current URL
+  const basename = useMemo(() => {
+    const url = window.location.pathname;
+    // Check if we're in the production environment
+    if (url.includes('/battle_royale_client/')) {
+      return '/battle_royale_client';
+    }
+    // Default to development
+    return '/miniapp';
+  }, []);
+
   return (
     <AppRoot
       appearance={WebApp.colorScheme}
       platform={['macos', 'ios'].includes(WebApp.platform) ? 'ios' : 'base'}
     >
-      <BrowserRouter basename="/miniapp">
+      <BrowserRouter basename={basename}>
         <BackButtonManipulator/>
         <Routes>
           {routes.map((route) => <Route key={route.path} {...route} />)}

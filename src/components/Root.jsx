@@ -93,7 +93,7 @@ export function Inner() {
         // - "game=GAME_123" as a key-value pair
         // - "param1=value1&game=GAME_123&param3=value3" as part of query params
         
-        if (startParam.includes('=')) {
+        if (startParam.includes('_')) {
           // This appears to be a query string or key-value format
           const params = new URLSearchParams(startParam.replace(/&amp;/g, '&'));
           gameId = params.get('game');

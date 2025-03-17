@@ -4,7 +4,7 @@ import { UserProfileCard } from '@/components/UserProfileCard';
 import { useGameData } from '@/provider/GameDataProvider';
 import { decodePlayerData } from "@/types/PlayerDecoder";
 import { PublicKey } from "@solana/web3.js";
-
+import { useGameId } from '@/hooks/useGameId';
 const BalanceAndHistory = () => {
   const [playerData, setPlayerData] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -12,9 +12,13 @@ const BalanceAndHistory = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
-  const GAME_ID = "1741829414591"; 
-  const { gameData, connection, roundsData,completedRounds } = useGameData();
 
+  const { gameData, connection, roundsData,completedRounds } = useGameData();
+  const { gameId } = useGameId();
+  const GAME_ID = gameId || "1741655861356"; 
+
+
+  
   useEffect(() => {
     const loadPlayerData = async () => {
       if (!connection) return;

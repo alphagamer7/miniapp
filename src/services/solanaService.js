@@ -2,10 +2,17 @@
 import { PublicKey, SystemProgram, Transaction, TransactionInstruction } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
 import { Buffer } from "buffer";
+import { WALLET_CONFIG } from '@/config/wallet.config';
 
 export class SolanaService {
   static PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
-  static GAME_ID = "1741829414591";
+  
+  // Get the game ID dynamically from localStorage
+  static getGameId() {
+    // Get the game ID from localStorage with fallback
+    const storedGameId = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.GAME_ID);
+    return storedGameId || "1741829414591"; // Use fallback value if not found
+  }
 
   static PDA_PREFIXES = {
     GAME: "game",
@@ -49,15 +56,23 @@ export class SolanaService {
   }
 
   static async deriveGamePDA() {
-    const gameIdBytes = this.numberToLeBytes(this.GAME_ID);
+    // Use dynamic game ID
+    const gameId = this.getGameId();
+    console.log('Using Game ID for deriveGamePDA:', gameId);
+    
+    const gameIdBytes = this.numberToLeBytes(gameId);
     return this.derivePDA(this.PDA_PREFIXES.GAME, [gameIdBytes]);
   }
 
-  static  deriveRoundPDA = async (roundId) => {
+  static deriveRoundPDA = async (roundId) => {
+    // Use dynamic game ID
+    const gameId = this.getGameId();
+    console.log('Using Game ID for deriveRoundPDA:', gameId);
+    
     // Convert gameId (uint64) and roundId (uint32) to byte arrays in little-endian format
     const gameIdBytes = new ArrayBuffer(8); // 8 bytes for a 64-bit number
     const view64 = new DataView(gameIdBytes);
-    view64.setBigUint64(0, BigInt(this.GAME_ID), true); // true for little-endian
+    view64.setBigUint64(0, BigInt(gameId), true); // true for little-endian
   
     const roundIdBytes = new ArrayBuffer(4); // 4 bytes for a 32-bit number
     const view32 = new DataView(roundIdBytes);
@@ -83,10 +98,14 @@ export class SolanaService {
   static async derivePlayerPDA(playerPubkey) {
     const pubkey = new PublicKey(playerPubkey);
     
+    // Use dynamic game ID
+    const gameId = this.getGameId();
+    console.log('Using Game ID for derivePlayerPDA:', gameId);
+    
     // Convert gameId to bytes
     const gameIdBytes = new ArrayBuffer(8);
     const view = new DataView(gameIdBytes);
-    view.setBigUint64(0, BigInt(this.GAME_ID), true);
+    view.setBigUint64(0, BigInt(gameId), true);
     
     // Use the same seed pattern as in the Rust code
     const seeds = [
@@ -105,10 +124,14 @@ export class SolanaService {
   }
 
   static async deriveRoundVaultPDA(roundPDA, roundId) {
+    // Use dynamic game ID
+    const gameId = this.getGameId();
+    console.log('Using Game ID for deriveRoundVaultPDA:', gameId);
+    
     // Convert gameId to bytes
     const gameIdBytes = new ArrayBuffer(8);
     const view64 = new DataView(gameIdBytes);
-    view64.setBigUint64(0, BigInt(this.GAME_ID), true);
+    view64.setBigUint64(0, BigInt(gameId), true);
     
     // Convert roundId to bytes
     const roundIdBytes = new ArrayBuffer(4);
@@ -139,7 +162,11 @@ export class SolanaService {
     tokenMint
   }) {
     try {
-      console.log('Creating join round transaction with:', { roundId, playerKey, tokenMint });
+      // Use dynamic game ID
+      const gameId = this.getGameId();
+      console.log('Using Game ID for createJoinRoundTransaction:', gameId);
+      
+      console.log('Creating join round transaction with:', { gameId, roundId, playerKey, tokenMint });
       
       const programPubkey = new PublicKey(this.PROGRAM_ID);
       const playerPubkey = new PublicKey(playerKey);
@@ -169,7 +196,7 @@ export class SolanaService {
       // Create a buffer to hold the discriminator and instruction arguments
       const gameIdBytes = new ArrayBuffer(8);
       const gameIdView = new DataView(gameIdBytes);
-      gameIdView.setBigUint64(0, BigInt(this.GAME_ID), true); // Set game_id argument
+      gameIdView.setBigUint64(0, BigInt(gameId), true); // Set game_id argument
       
       const roundIdBytes = new ArrayBuffer(4);
       const roundIdView = new DataView(roundIdBytes);

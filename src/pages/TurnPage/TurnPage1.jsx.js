@@ -118,22 +118,18 @@ const TurnPage = () => {
   }
 
   const calculateGridConfig = (totalPlayers) => {
-    // Always show 49 circles maximum (7x7 grid)
-    const totalSlots = 49;
-    const gridCols = 7;
-    
-    // If more than 49 players, we need to split some slots
-    const needsSplitting = totalPlayers > 49;
-    
-    // Calculate how many slots need to be split, starting from the first index
-    // Example: 53 players means we need to split 4 slots (53-49=4)
-    const playersThatNeedSplitting = needsSplitting ? totalPlayers - 49 : 0;
+    if (totalPlayers <= 49) {
+      return {
+        totalSlots: totalPlayers,
+        playersPerSlot: 1,
+        gridCols: Math.min(7, Math.ceil(Math.sqrt(totalPlayers)))
+      };
+    }
     
     return {
-      totalSlots,
-      gridCols,
-      showDoublePerSlot: needsSplitting,
-      playersThatNeedSplitting
+      totalSlots: 49,
+      playersPerSlot: Math.ceil(totalPlayers / 49),
+      gridCols: 7
     };
   };
 
@@ -225,6 +221,8 @@ const TurnPage = () => {
   const playerEliminated = isPlayerEliminated();
   const playerWinner = isPlayerWinner();
 
+ 
+
   return (
     <div className="min-h-screen w-full flex flex-col bg-[#4400CE] overflow-hidden">
       {/* Round Info */}
@@ -244,77 +242,43 @@ const TurnPage = () => {
 
       {/* Game Grid */}
       <div className="px-4 flex-1">
-        <div className={`grid grid-cols-${gridConfig.gridCols} gap-2`}>
+        <div className="grid grid-cols-7 gap-2">
           {Array(gridConfig.totalSlots).fill(null).map((_, gridIndex) => {
-            // Determine which player(s) to show in this slot
-            let playerIndexes = [];
-            
-            if (gridConfig.showDoublePerSlot) {
-              // First determine if this slot needs to be split
-              const needsSplitting = gridIndex < gridConfig.playersThatNeedSplitting;
-              
-              if (needsSplitting) {
-                // This slot shows 2 players
-                playerIndexes.push(gridIndex); // First player in this slot
-                
-                // Second player is at index 49 + gridIndex
-                const secondPlayerIndex = 49 + gridIndex;
-                if (secondPlayerIndex < displayPlayerIndexes.length) {
-                  playerIndexes.push(secondPlayerIndex);
-                }
-              } else {
-                // This slot shows 1 player (the player at this position)
-                if (gridIndex < displayPlayerIndexes.length) {
-                  playerIndexes.push(gridIndex);
-                } else {
-                  return <div key={gridIndex} className="aspect-square" />;
-                }
-              }
-            } else {
-              // For 49 or fewer players, show one player per slot
-              if (gridIndex < displayPlayerIndexes.length) {
-                playerIndexes.push(gridIndex);
-              } else {
-                // Empty slot if we've shown all players
-                return <div key={gridIndex} className="aspect-square" />;
-              }
+            // If we have fewer players than grid slots, only show slots up to player count
+            if (gridIndex >= displayPlayerIndexes.length) {
+              return <div key={gridIndex} className="aspect-square" />;
             }
             
+            // Get the actual player index for this grid position
+            const playerIndex = displayPlayerIndexes[gridIndex];
+            
+            // Check if this is the current user
+            const isUserPosition = playerIndex === userPlayerIndex;
+            const isUserEliminated = eliminatedPlayers.includes(userPlayerIndex);
+            const shouldHighlightUser = isUserPosition && !isUserEliminated;
+            
             return (
-              <div key={gridIndex} className="aspect-square flex flex-col">
-                {playerIndexes.map((playerIndex, slotPosition) => {
-                  // Check if this is the current user
-                  const isUserPosition = playerIndex === userPlayerIndex;
-                  const isEliminated = eliminatedPlayers.includes(playerIndex);
-                  
-                  // Height will be full for single player, or 50% for double players
-                  const heightClass = playerIndexes.length > 1 ? 'h-1/2' : 'h-full';
-                  
-                  return (
-                    <div key={`player-${playerIndex}`} className={`${heightClass} w-full ${slotPosition > 0 ? 'mt-1' : ''}`}>
-                      {isUserPosition ? (
-                        <div className={`w-full h-full rounded-full overflow-hidden ${
-                          playerWinner ? 'bg-yellow-400' : 
-                          isEliminated ? 'bg-gray-400' : 'bg-yellow-500'
-                        }`}>
-                          <img 
-                            src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t500x500.jpg"} 
-                            alt="User"
-                            className={`w-full h-full object-cover ${isEliminated ? 'opacity-50' : ''}`}
-                          />
-                        </div>
-                      ) : (
-                        <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden transition-colors duration-500 ${
-                          isEliminated ? 'bg-gray-400' : 'bg-white/80'
-                        }`}>
-                          <span className={`transition-colors duration-500 ${isEliminated ? 'text-gray-600' : 'text-gray-800'}`}>
-                            P{playerIndex + 1}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              <div key={gridIndex} className="aspect-square">
+                {isUserPosition ? (
+                  <div className={`w-full h-full rounded-full overflow-hidden ${
+                    playerWinner ? 'bg-yellow-400' : 
+                    eliminatedPlayers.includes(userPlayerIndex) ? 'bg-gray-400' : 'bg-yellow-500'
+                  }`}>
+                    <img 
+                      src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t500x500.jpg"} 
+                      alt="User"
+                      className={`w-full h-full object-cover ${eliminatedPlayers.includes(userPlayerIndex) ? 'opacity-50' : ''}`}
+                    />
+                  </div>
+                ) : (
+                  <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden transition-colors duration-500 ${
+                    eliminatedPlayers.includes(playerIndex) ? 'bg-gray-400' : 'bg-white/80'
+                  }`}>
+                    <span className={`transition-colors duration-500 ${eliminatedPlayers.includes(playerIndex) ? 'text-gray-600' : 'text-gray-800'}`}>
+                      P{playerIndex + 1}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}

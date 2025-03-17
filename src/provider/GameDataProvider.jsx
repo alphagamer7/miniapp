@@ -9,7 +9,7 @@ import { decodeRoundData } from "@/types/RoundDecoder";
 const GameDataContext = createContext(null);
 
 // Custom hook to use the context.
-export const useGameData = () => useContext(GameDataContext);
+export const  useGameData = () => useContext(GameDataContext);
 
 // Provider component that encapsulates logic for fetching game data and handling the connection.
 export const GameDataProvider = ({ children }) => {

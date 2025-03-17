@@ -25,6 +25,64 @@ command:
 npm install
 ```
 
+## Game ID Parameter Handling
+
+This application supports automatic capture and storage of a Game ID from multiple sources, allowing deep linking to specific game instances. The app will check for a game ID in the following order:
+
+1. URL query parameters (highest priority)
+2. URL hash parameters 
+3. Telegram start parameters
+4. Existing value in localStorage
+5. Default fallback value (lowest priority)
+
+### How It Works
+
+1. When the app starts, it first checks URL parameters like `?gameId=123`
+2. If not found, it checks URL hash parameters like `#gameId=123`
+3. If still not found, it extracts the GAME_ID from the Telegram start parameter
+4. The ID is stored in localStorage for persistence
+5. Components can access this ID using the provided hook
+6. If no game ID is found from any source, a default value is used
+
+### Supported Format Examples
+
+#### URL Parameters
+- Direct in query string: `https://yourapp.com/?gameId=GAME_123`
+- Using different naming: `https://yourapp.com/?game_id=GAME_123` or `https://yourapp.com/?game=GAME_123`
+- In hash for SPA routing: `https://yourapp.com/#/route?gameId=GAME_123`
+
+#### Telegram Start Parameters
+- Direct ID: `https://t.me/yourbotname?start=GAME_123`
+- Key-value pair: `https://t.me/yourbotname?start=game=GAME_123`
+- With other parameters: `https://t.me/yourbotname?start=param1=value1&game=GAME_123&param3=value3`
+
+### Usage in Components
+
+```jsx
+import { useGameId } from '@/hooks/useGameId';
+
+function MyComponent() {
+  // Access the game ID and related functions
+  const { gameId, updateGameId, clearGameId, isLoaded } = useGameId();
+  
+  // Use with a default fallback if needed
+  const currentGameId = gameId || "default_game_id";
+  
+  return (
+    <div>
+      <p>Current Game ID: {currentGameId}</p>
+      {/* Rest of your component */}
+    </div>
+  );
+}
+```
+
+The `useGameId` hook provides:
+- `gameId`: The current game ID from local storage
+- `updateGameId(newId)`: Function to update the game ID
+- `clearGameId()`: Function to clear the game ID
+- `isLoaded`: Boolean indicating if a game ID exists
+
 ## Scripts
 
 This project contains the following scripts:

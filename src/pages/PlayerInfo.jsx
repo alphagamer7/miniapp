@@ -1,18 +1,21 @@
-
 import WebApp from '@twa-dev/sdk';
 import React, { useEffect, useState } from "react";
 import { useGameData } from '@/provider/GameDataProvider';
 import { decodeRoundData } from "@/types/RoundDecoder";
 import { decodePlayerData } from "@/types/PlayerDecoder";
 import { PublicKey,SystemProgram, Transaction, TransactionInstruction } from "@solana/web3.js";
+import { useGameId } from '@/hooks/useGameId';
 // import { Buffer } from 'buffer';
 
 export function PlayerInfoPage() {
     const [playerData, setPlayerData] = useState(null);
     const PROGRAM_ID = "5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof";
-    // const GAME_ID = "1741053547878"; 
-    const GAME_ID = "1741655861356";
-      const { gameData, connection } = useGameData();
+    // Get GAME_ID from localStorage, with fallback value if not found
+    const { gameId } = useGameId();
+    const GAME_ID = gameId || "1741655861356"; // Fallback to default if no game ID in localStorage
+    
+    const { gameData, connection } = useGameData();
+    
     useEffect(() => {
         const loadPlayerData = async () => {
           if (!connection) return;
@@ -32,7 +35,7 @@ export function PlayerInfoPage() {
           // Convert gameId to bytes
           const gameIdBytes = new ArrayBuffer(8);
           const view = new DataView(gameIdBytes);
-          view.setBigUint64(0, BigInt("1741053547878"), true);
+          view.setBigUint64(0, BigInt(GAME_ID), true); // Use dynamic GAME_ID
           
           // Use the same seed pattern as in the Rust code
           const seeds = [
@@ -43,7 +46,7 @@ export function PlayerInfoPage() {
           
           const [playerPDA] = await PublicKey.findProgramAddress(
             seeds,
-            new PublicKey("5UX9tzoZ5Tg7AbHvNbUuDhapAPFSJijREKjJpRQR8wof")
+            new PublicKey(PROGRAM_ID)
           );
           
           console.log('Derived player PDA:', playerPDA.toString());
@@ -52,6 +55,7 @@ export function PlayerInfoPage() {
     const fetchPlayerAccountInfo = async (playerKey) => {
         try {
           console.log('Fetching player account info for:', playerKey);
+          console.log('Using GAME_ID:', GAME_ID);
           
           // Derive player PDA
           const programId = new PublicKey(PROGRAM_ID);

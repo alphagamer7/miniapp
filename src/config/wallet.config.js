@@ -11,5 +11,6 @@ export const WALLET_CONFIG = {
     NONCE: 'phantom_nonce',
     CONNECTION_SECRET_KEY: 'phantom_connection_secret_key',
     CONNECTION_PUBLIC_KEY: 'phantom_connection_public_key',
+    GAME_ID: 'settld_game_id',
   }
 }; 

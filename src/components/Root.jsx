@@ -7,6 +7,12 @@ import { ErrorBoundary } from '@/components/ErrorBoundary.jsx';
 import { GameDataProvider } from '@/provider/GameDataProvider';
 import { WALLET_CONFIG } from '@/config/wallet.config';
 
+// Debug logs for Telegram WebApp initialization
+console.log('Root.jsx loaded, WebApp available:', !!WebApp);
+console.log('WebApp raw initData:', WebApp.initData);
+console.log('WebApp initDataUnsafe:', WebApp.initDataUnsafe);
+console.log('WebApp start_param:', WebApp.initDataUnsafe.start_param);
+
 // Utility functions for game parameters
 export const GameParams = {
   // Store the game ID in localStorage
@@ -59,64 +65,44 @@ export function Inner() {
   }, []);
 
   // Process URL parameters and Telegram start parameters to extract and store the GAME_ID
-  useEffect(() => {
-    try {
-      // First check URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      let gameId = urlParams.get('gameId') || urlParams.get('game_id') || urlParams.get('game');
-      
-      if (gameId) {
-        console.log('Game ID found in URL parameters:', gameId);
-        GameParams.saveGameId(gameId);
-        return; // If we found a gameId in the URL, no need to check Telegram params
-      }
-      
-      // Next check URL hash (for SPA routing with hash)
-      if (window.location.hash) {
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        gameId = hashParams.get('gameId') || hashParams.get('game_id') || hashParams.get('game');
-        
-        if (gameId) {
-          console.log('Game ID found in URL hash:', gameId);
-          GameParams.saveGameId(gameId);
-          return;
-        }
-      }
-      
-      // If no gameId in URL, check Telegram start parameters
-      const startParam = WebApp.initDataUnsafe.start_param;
-      console.log('Telegram start param:', startParam);
-      
-      if (startParam) {
-        // Parse the start_param which could be in different formats:
-        // - "GAME_123" directly as the start_param
-        // - "game=GAME_123" as a key-value pair
-        // - "param1=value1&game=GAME_123&param3=value3" as part of query params
-        
-        if (startParam.includes('_')) {
-          // This appears to be a query string or key-value format
-          const params = new URLSearchParams(startParam.replace(/&amp;/g, '&'));
-          gameId = params.get('game');
+useEffect(() => {
+  try {
+    // Get Telegram start parameter
+    const startParam = WebApp.initDataUnsafe.start_param;
+    console.log('Telegram start param:', startParam);
+    
+    if (startParam) {
+      // Check if this looks like a base64url encoded string
+      if (/^[A-Za-z0-9_-]+$/.test(startParam)) {
+        try {
+          // Convert base64url to regular base64
+          const base64 = startParam.replace(/-/g, '+').replace(/_/g, '/');
           
-          // If not found with 'game' key, try other potential keys
-          if (!gameId) {
-            gameId = params.get('game_id') || params.get('gameId') || params.get('id');
+          // Add padding if needed
+          const padding = '='.repeat((4 - base64.length % 4) % 4);
+          const paddedBase64 = base64 + padding;
+          
+          // Decode the base64 string
+          const decodedString = atob(paddedBase64);
+          console.log('Decoded parameter:', decodedString);
+          
+          // Check if the decoded string starts with game_
+          if (decodedString.startsWith('game_')) {
+            // Extract just the number part after "game_"
+            const gameId = decodedString.substring(5);
+            console.log('Game ID extracted:', gameId);
+            alert("Game ID: " + gameId);
+            GameParams.saveGameId(gameId);
           }
-        } else if (startParam.match(/^(GAME_|game_)\d+$/i)) {
-          // This appears to be just the game ID directly
-          gameId = startParam;
-        }
-        
-        // If we found a game ID, store it
-        if (gameId) {
-          console.log('Game ID found in Telegram start parameters:', gameId);
-          GameParams.saveGameId(gameId);
+        } catch (error) {
+          console.error('Error decoding base64:', error);
         }
       }
-    } catch (error) {
-      console.error('Error processing start parameters:', error);
     }
-  }, []);
+  } catch (error) {
+    console.error('Error processing start parameters:', error);
+  }
+}, []);
 
   // Enable debug mode to see all the methods sent and events received.
   useEffect(() => {

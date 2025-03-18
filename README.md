@@ -109,22 +109,37 @@ This project is configured to support both development and production environmen
 - **Development Environment**:
   - Base Path: `/miniapp/`
   - Deployed to: `https://alphagamer7.github.io/miniapp/`
-  - Repository: `git@github.com:alphagamer7/miniapp.git`
+  - Repository: `https://github.com/alphagamer7/miniapp.git`
 
 - **Production Environment**:
   - Base Path: `/battle_royale_client/`
   - Deployed to: `https://settld-lab.github.io/battle_royale_client/`
-  - Repository: `git@github.com:settld-lab/battle_royale_client.git`
+  - Repository: `https://github.com/settld-lab/battle_royale_client.git`
 
-### Manual Deployment Instructions
+### Deploying for Team Members (IMPORTANT)
 
-A convenient deployment script is included that handles building with the correct configuration and deploying to the appropriate repository:
+For team members who don't have SSH keys set up, use these deployment methods:
+
+```bash
+# Easiest option - Using npm scripts with HTTPS
+npm run deploy
+
+# OR Using the deployment script with HTTPS
+./deploy.sh dev
+```
+
+This will prompt for your GitHub username and password or personal access token.
+
+### Manual Deployment Options
 
 #### Deploy to Development Environment
 
 ```bash
-# Deploy to development
+# Using HTTPS authentication (works for all team members)
 ./deploy.sh dev
+
+# Using SSH authentication (requires SSH keys set up with GitHub)
+./deploy.sh dev --ssh
 ```
 
 This command will:
@@ -135,8 +150,11 @@ This command will:
 #### Deploy to Production Environment
 
 ```bash
-# Deploy to production
+# Using HTTPS authentication (works for all team members)
 ./deploy.sh prod
+
+# Using SSH authentication (requires SSH keys set up with GitHub)
+./deploy.sh prod --ssh
 ```
 
 This command will:

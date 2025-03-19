@@ -14,6 +14,7 @@ import { PublicKey } from "@solana/web3.js";
 import { PhantomMobileService } from "@/services/phantomMobileService";
 import animationData from '@/assets/WaitingClock.json'
 import Lottie from 'lottie-react';
+import { WALLET_CONFIG } from '@/config/wallet.config';
 const LottieAnimation = () => {
   return (
     <div className="lottie-container w-full h-64 flex items-center justify-center">
@@ -74,7 +75,7 @@ const RoundDetailPage = () => {
   const [isJoining, setIsJoining] = useState(false);
   const userToken = userTokenBalance();
   const [dappKeyPair] = useState(() => {
-    const savedKeyPair = localStorage.getItem("dapp_key_pair");
+    const savedKeyPair = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.DAPP_KEY_PAIR);
     if (savedKeyPair) {
       try {
         const parsed = JSON.parse(savedKeyPair);
@@ -89,7 +90,7 @@ const RoundDetailPage = () => {
     } else {
       const newKeyPair = nacl.box.keyPair();
       localStorage.setItem(
-        "dapp_key_pair",
+        WALLET_CONFIG.STORAGE_KEYS.DAPP_KEY_PAIR,
         JSON.stringify({
           publicKey: Array.from(newKeyPair.publicKey),
           secretKey: Array.from(newKeyPair.secretKey),
@@ -100,7 +101,7 @@ const RoundDetailPage = () => {
   });
 
   useEffect(() => {
-    const pubKeyStr = localStorage.getItem("publicKey");
+    const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
     if (pubKeyStr) {
       setUserPublicKey(pubKeyStr);
     }
@@ -137,10 +138,12 @@ const RoundDetailPage = () => {
 
   const handleConfirmClick = async () => {
     try {
+      alert("Confirming join round......");
       setIsJoining(true);
-      const pubKeyStr = localStorage.getItem("publicKey");
+      const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
       if (!pubKeyStr) {
-        //alert("Please connect your wallet first");
+        alert("Please connect your wallet first");
+        console.log("Please connect your wallet first");
         setIsJoining(false);
         return;
       }
@@ -155,7 +158,7 @@ const RoundDetailPage = () => {
       console.log(`hasPhantomExtension ${!hasPhantomExtension}`)
       if (isTelegram && !hasPhantomExtension) {
         // If in Telegram OR no extension available, use deep link flow
-        const sessionToken = localStorage.getItem("session");
+        const sessionToken = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.SESSION);
         if (!sessionToken) {
           //alert("No wallet session found. Please reconnect your wallet.");
           setIsJoining(false);
@@ -168,6 +171,7 @@ const RoundDetailPage = () => {
       }
     } catch (error) {
       console.error("Failed to join round:", error);
+      alert("Failed to join round: " + error.message);
       if (error.message.includes("User rejected")) {
         //alert("Transaction was rejected by the user");
       } else {
@@ -238,12 +242,12 @@ const RoundDetailPage = () => {
   const decryptTransactionData = (encryptedData, nonce) => {
     try {
       // Get the necessary keys from localStorage
-      const secretKeyBase58 = localStorage.getItem("phantom_connection_secret_key");
+      const secretKeyBase58 = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.CONNECTION_SECRET_KEY);
       if (!secretKeyBase58) {
         throw new Error("Secret key not found. Please reconnect your wallet.");
       }
       
-      const phantomPublicKey = localStorage.getItem("phantom_public_key");
+      const phantomPublicKey = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.PUBLIC_KEY);
       if (!phantomPublicKey) {
         throw new Error("Phantom public key not found. Please reconnect your wallet.");
       }
@@ -327,7 +331,7 @@ const RoundDetailPage = () => {
       const phantomUrl = await PhantomMobileService.createSignAndSendUrl(payload);
 
       // Store current round ID for the callback
-      localStorage.setItem("current_round_id", roundId);
+      localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.CURRENT_ROUND_ID, roundId);
 
       // Open in Telegram mini app browser
       WebApp.openLink(phantomUrl, { try_instant_view: false });
@@ -343,7 +347,7 @@ const RoundDetailPage = () => {
     try {
       setIsJoining(true);
   
-      const pubKeyStr = localStorage.getItem("publicKey");
+      const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
       if (!pubKeyStr) {
         //alert('Please connect your wallet first');
         return;

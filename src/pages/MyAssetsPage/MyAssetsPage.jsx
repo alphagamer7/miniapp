@@ -8,7 +8,7 @@ import { AccountDecoder } from '@/hook/UseMultiAccountSubscription'; // Add this
 import { PublicKey } from "@solana/web3.js";
 // import { Buffer } from 'buffer';
 import { getTokenMetadata } from "@solana/spl-token";
-
+import { WALLET_CONFIG } from '@/config/wallet.config';
 export function MyAssetsPage() {
     const [userImage, setUserImage] = useState("");
     const [userNameAndSurname, setUserNameAndSurname] = useState("");
@@ -29,7 +29,7 @@ export function MyAssetsPage() {
 
         const setupTokenSubscription = async () => {
             try {
-                const publicKeyStr = localStorage.getItem("publicKey");
+                const publicKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
                 if (!connection || !publicKeyStr) {
                     console.log("Missing connection or public key");
                     return;
@@ -94,7 +94,7 @@ export function MyAssetsPage() {
 
     const checkBalance = async () => {
         try {
-            const pubKeyStr = localStorage.getItem("publicKey");
+            const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
             if (!pubKeyStr) {
                 console.log("No public key found in localStorage");
                 return;

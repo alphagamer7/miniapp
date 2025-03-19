@@ -8,6 +8,7 @@ import {UserProfileCard1} from '@/components/UserProfileCard1';
 import {Header} from '@/components/Header';
 import PhantomWalletConnect from '../PhantomWallet/PhantomWalletPage';
 import WebApp from '@twa-dev/sdk';
+import { WALLET_CONFIG } from '@/config/wallet.config';
 const formatTimeRemaining = (timeInSeconds) => {
   if (timeInSeconds <= 0) return "Starting...";
   
@@ -40,7 +41,8 @@ const HomePage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const pubKeyStr = localStorage.getItem("publicKey");
+    
+    const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
     setIsMobile(checkDeviceType());
     if (!pubKeyStr) {
       console.log("No public key found in localStorage");

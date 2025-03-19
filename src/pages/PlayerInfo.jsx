@@ -5,6 +5,7 @@ import { decodeRoundData } from "@/types/RoundDecoder";
 import { decodePlayerData } from "@/types/PlayerDecoder";
 import { PublicKey,SystemProgram, Transaction, TransactionInstruction } from "@solana/web3.js";
 import { useGameId } from '@/hooks/useGameId';
+import { WALLET_CONFIG } from '@/config/wallet.config';
 // import { Buffer } from 'buffer';
 
 export function PlayerInfoPage() {
@@ -20,7 +21,7 @@ export function PlayerInfoPage() {
         const loadPlayerData = async () => {
           if (!connection) return;
           
-          const pubKeyStr = localStorage.getItem("publicKey");
+          const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
           if (!pubKeyStr) return;
           
           const data = await fetchPlayerAccountInfo(pubKeyStr);

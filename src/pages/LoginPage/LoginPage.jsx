@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { useNavigate } from 'react-router-dom';
+import { WALLET_CONFIG } from '@/config/wallet.config';
 const LoginScreen = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [balance, setBalance] = useState(null);
@@ -11,7 +12,7 @@ const LoginScreen = () => {
 
   useEffect(() => {
     // Check if already connected
-    const connected = localStorage.getItem('connected');
+    const connected = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.CONNECTED);
     if (connected) {
       setIsConnected(true);
       navigate('/round-list');
@@ -50,8 +51,8 @@ const LoginScreen = () => {
        // Connect to devnet
        const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
   
-      localStorage.setItem('connected', 'true');
-      localStorage.setItem('publicKey', publicKey.toString());
+      localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.CONNECTED, 'true');
+      localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY, publicKey);
       setIsConnected(true);
       navigate('/home');
     } catch (error) {
@@ -134,8 +135,8 @@ const connectWallet = async () => {
       const pubKey = new PublicKey(response.publicKey.toString());
       console.log(`Pub Key: ${pubKey}`);
       
-      localStorage.setItem('connected', 'true');
-      localStorage.setItem('publicKey', pubKey.toString());
+      localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.CONNECTED, 'true');
+      localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY, pubKey.toString());
       setIsConnected(true);
       navigate('/round-list');
     } else {

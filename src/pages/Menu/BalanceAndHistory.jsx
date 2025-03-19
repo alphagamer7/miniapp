@@ -5,6 +5,7 @@ import { useGameData } from '@/provider/GameDataProvider';
 import { decodePlayerData } from "@/types/PlayerDecoder";
 import { PublicKey } from "@solana/web3.js";
 import { useGameId } from '@/hooks/useGameId';
+import { WALLET_CONFIG } from '@/config/wallet.config';
 const BalanceAndHistory = () => {
   const [playerData, setPlayerData] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -23,7 +24,7 @@ const BalanceAndHistory = () => {
     const loadPlayerData = async () => {
       if (!connection) return;
       
-      const pubKeyStr = localStorage.getItem("publicKey");
+      const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
       if (!pubKeyStr) return;
       
       try {

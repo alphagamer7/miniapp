@@ -98,7 +98,13 @@ useEffect(() => {
           console.error('Error decoding base64:', error);
         }
       }
+    }else{
+      const gameId = GameParams.getGameId();
+      if (!gameId) {
+        GameParams.saveGameId(WALLET_CONFIG.DEFAULT_GAME_ID);     
+      }
     }
+   
   } catch (error) {
     console.error('Error processing start parameters:', error);
   }

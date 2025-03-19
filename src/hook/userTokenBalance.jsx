@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { PublicKey } from "@solana/web3.js";
 import { useGameData } from '@/provider/GameDataProvider';
-
+import { WALLET_CONFIG } from '@/config/wallet.config';
 export const userTokenBalance = () => {
     const { gameData, connection } = useGameData();
     const [userToken, setUserToken] = useState({
@@ -18,7 +18,7 @@ export const userTokenBalance = () => {
     const checkBalance = async () => {
         try {
             console.log("Check Balance Working...")
-            const pubKeyStr = localStorage.getItem("publicKey");
+            const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
             if (!pubKeyStr) {
                 console.log("No public key found in localStorage");
                 return;

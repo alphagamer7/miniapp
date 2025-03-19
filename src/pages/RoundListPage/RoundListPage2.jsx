@@ -5,6 +5,7 @@ import {Header} from '@/components/Header';
 import {UserProfileCard} from '@/components/UserProfileCard';
 import { useGameData } from '@/provider/GameDataProvider';
 import {RoundCard} from '@/components/RoundCard';
+import { WALLET_CONFIG } from '@/config/wallet.config';
 
 const formatTimeRemaining = (timeInSeconds) => {
   if (timeInSeconds <= 0) return "Starting...";
@@ -29,7 +30,7 @@ const RoundList = () => {
     const [timeRemaining, setTimeRemaining] = useState({});
 
     useEffect(() => {
-      const pubKeyStr = localStorage.getItem("publicKey");
+      const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
       if (!pubKeyStr) {
         console.log("No public key found in localStorage");
         return;

@@ -122,7 +122,7 @@ const usePhantomWallet = () => {
           return;
         }
       } catch (err) {
-        setError("Error parsing wallet connection data: " + err.message);
+        setError("Error parsing wallet connection data details:" + err.message);
       }
     }
     

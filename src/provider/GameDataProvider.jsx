@@ -172,6 +172,7 @@ const numberToLeBytes = (num) => {
             connection,
             pda,
             async (decodedGameData) => {
+              console.log(`Game Data Updated ${JSON.stringify(decodedGameData)}`);
  
               setGameData(decodedGameData);
               

@@ -3,6 +3,7 @@ import { AlertCircle, Trophy } from 'lucide-react';
 import { useGameData } from '@/provider/GameDataProvider';
 import WebApp from '@twa-dev/sdk';
 import { useNavigate } from 'react-router-dom';
+import { WALLET_CONFIG } from '@/config/wallet.config';
 
 const TurnPage = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const TurnPage = () => {
 
   // Load user public key and image from Telegram
   useEffect(() => {
-    const pubKeyStr = localStorage.getItem("publicKey");
+    const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
     const initData = WebApp.initDataUnsafe;
     if (initData && initData.user) {
       setUserImage(initData.user.photo_url || "");

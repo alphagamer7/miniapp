@@ -5,9 +5,12 @@
   "type": "module",
   "homepage": "https://settld-lab.github.io/battle_royale_client",
   "scripts": {
-    "deploy": "gh-pages -d dist",
-    "deploy:dev": "gh-pages -d dist -r git@github.com:alphagamer7/miniapp.git -b gh-pages",
-    "deploy:prod": "gh-pages -d dist -r git@github.com:settld-lab/battle_royale_client.git -b gh-pages",
+    "deploy": "gh-pages -d dist -r https://github.com/alphagamer7/miniapp.git -b gh-pages",
+    "deploy:ssh": "gh-pages -d dist -r git@github.com:alphagamer7/miniapp.git -b gh-pages",
+    "deploy:dev": "gh-pages -d dist -r https://github.com/alphagamer7/miniapp.git -b gh-pages",
+    "deploy:dev:ssh": "gh-pages -d dist -r git@github.com:alphagamer7/miniapp.git -b gh-pages",
+    "deploy:prod": "gh-pages -d dist -r https://github.com/settld-lab/battle_royale_client.git -b gh-pages",
+    "deploy:prod:ssh": "gh-pages -d dist -r git@github.com:settld-lab/battle_royale_client.git -b gh-pages",
     "build:dev": "npm run build -- --base=/miniapp/",
     "build:prod": "npm run build -- --base=/battle_royale_client/",
     "dev": "vite",
@@ -15,7 +18,7 @@
     "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0 --fix",
     "preview": "vite preview",
-    "predeploy": "npm run build"
+    "predeploy": "npm run build -- --base=/miniapp/"
   },
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",

@@ -109,8 +109,8 @@ const usePhantomWallet = () => {
               const decryptedData = decryptPhantomData(encryptedData, publicKey, nonce, secretKey);
               
               if (decryptedData?.public_key) {
-                localStorage.setItem("publicKey", decryptedData.public_key);
-                localStorage.setItem("session", decryptedData.session || "");
+                localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY, decryptedData.public_key);
+                localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.SESSION, decryptedData.session || "");
                 handleWalletConnection(decryptedData.public_key, "decrypted", decryptedData.session || "");
                 return;
               }
@@ -122,7 +122,7 @@ const usePhantomWallet = () => {
           return;
         }
       } catch (err) {
-        setError("Error parsing wallet connection data: " + err.message);
+        setError("Error parsing wallet connection data details:" + err.message);
       }
     }
     

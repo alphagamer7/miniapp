@@ -10,14 +10,7 @@ const LoginScreen = () => {
   const [pubkeyInput, setPubkeyInput] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Check if already connected
-    const connected = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.CONNECTED);
-    if (connected) {
-      setIsConnected(true);
-      navigate('/round-list');
-    }
-  }, [navigate]);
+
 
   const checkBalance = async () => {
     setError('');
@@ -54,7 +47,7 @@ const LoginScreen = () => {
       localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.CONNECTED, 'true');
       localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY, publicKey);
       setIsConnected(true);
-      navigate('/home');
+      navigate('/');
     } catch (error) {
       console.error('Error connecting to wallet:', error);
     }

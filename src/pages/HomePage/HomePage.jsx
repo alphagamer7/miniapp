@@ -39,12 +39,19 @@ const HomePage = () => {
     userId: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const isTelegram = window.Telegram && window.Telegram.WebApp;
 
+  // Check if browser extension is available for direct connection
+  const hasPhantomExtension = window.solana && window.solana.isPhantom;
   useEffect(() => {
-    
+  
     const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
     setIsMobile(checkDeviceType());
     if (!pubKeyStr) {
+      if (!isMobile ) {
+        console.log("Web APP");
+        navigate('/home');
+      }
       console.log("No public key found in localStorage");
       return;
     }
@@ -152,7 +159,20 @@ const HomePage = () => {
           </div>
           
         ) : (
-          <PhantomWalletConnect onWalletStateChange={handleWalletStateChange} />
+          isTelegram && !hasPhantomExtension ? (
+            <PhantomWalletConnect onWalletStateChange={handleWalletStateChange} />
+          ) : (
+            <div>
+              <UserProfileCard />
+           <button 
+             onClick={() => navigate('/home')}
+          
+              className="w-full bg-transparent border border-red-500 text-red-500 rounded-xl p-3 text-center mt-2"
+            >
+           Disconnect Wallet
+            </button>
+            </div>
+          )
         )}
       </div>
      

@@ -130,27 +130,7 @@ This project is designed to run as a Telegram Mini App. Key integration points:
 - Implements the BackButton component for navigation
 - Supports Telegram's authentication flow
 
-### Telegram Back Button
 
-The app implements custom back button handling. Example usage:
-
-```javascript
-const setupBackButton = () => {
-  const tg = window.Telegram.WebApp;
-  
-  if (tg.BackButton) {
-    tg.BackButton.show();
-    tg.BackButton.onClick(() => {
-      // Handle navigation
-    });
-  }
-};
-
-// Clean up when component unmounts
-if (tg.BackButton) {
-  tg.BackButton.offClick();
-}
-```
 
 ## Solana Integration
 

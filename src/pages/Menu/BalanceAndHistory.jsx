@@ -6,8 +6,11 @@ import { decodePlayerData } from "@/types/PlayerDecoder";
 import { PublicKey } from "@solana/web3.js";
 import { useGameId } from '@/hooks/useGameId';
 import { WALLET_CONFIG } from '@/config/wallet.config';
+
+import { useLocation, useNavigate } from 'react-router-dom';
 const BalanceAndHistory = () => {
   const [playerData, setPlayerData] = useState(null);
+  const [pageUrl, setPageURL] = useState("");
   const [transactions, setTransactions] = useState([]);
   const [balance, setBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,10 +20,12 @@ const BalanceAndHistory = () => {
   const { gameData, connection, roundsData,completedRounds } = useGameData();
   const { gameId } = useGameId();
   const GAME_ID = gameId || "1741655861356"; 
+  const navigate = useNavigate();
 
 
   
   useEffect(() => {
+  
     const loadPlayerData = async () => {
       if (!connection) return;
       
@@ -218,7 +223,6 @@ const BalanceAndHistory = () => {
         <div className="p-4">
           <UserProfileCard />
         </div>
-
         {/* Action Buttons */}
         <div className="mx-4 mt-4 flex gap-4">
           <div className="flex-1 text-white text-xl font-semibold py-4 rounded-xl text-center border border-black">

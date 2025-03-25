@@ -30,6 +30,8 @@ const RoundList = () => {
     const [timeRemaining, setTimeRemaining] = useState({});
 
     useEffect(() => {
+      const currentUrl = window.location.href;
+      console.log(`Curent Url ${currentUrl}`)
       const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
       if (!pubKeyStr) {
         console.log("No public key found in localStorage");

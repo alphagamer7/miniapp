@@ -44,7 +44,11 @@ const HomePage = () => {
   // Check if browser extension is available for direct connection
   const hasPhantomExtension = window.solana && window.solana.isPhantom;
   useEffect(() => {
+    const url = window.location.href;
+    const newUrl = url.replace(/\/[^\/]*$/, '/');
   
+    
+    console.log(newUrl)
     const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
     setIsMobile(checkDeviceType());
     if (!pubKeyStr) {
@@ -176,7 +180,6 @@ const HomePage = () => {
         )}
       </div>
      
-
       {/* Spacer to push content to bottom */}
       <div className="flex-1"></div>
 

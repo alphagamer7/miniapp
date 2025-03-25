@@ -21,6 +21,64 @@ const TurnPage = () => {
   // Get game data from context
   const { roundsData, connection } = useGameData();
 
+  const handleBackButtonClick = () => {
+    const tg = window.Telegram?.WebApp;
+    console.log("Back button clicked");
+    // alert('onClick triggered, navigating to /round-list1 v24')
+    const url = window.location.href;
+    // Try different navigation approaches
+    try {
+      // Option 1: React Router navigation
+      setTimeout(() => {
+        navigate('/');
+      }, 0);
+    
+      return false;
+    } catch (e) {
+      console.error("Navigation error:", e);
+      // alert(`Navigation error: ${e}`)
+
+    }
+  };
+  const setupBackButton = () => {
+    const tg = window.Telegram?.WebApp;
+    
+    if (!tg) {
+      console.error("Telegram WebApp not available");
+      return;
+    }
+    
+    try {
+      // Show the back button
+      tg.BackButton.show();
+      console.log("Back button shown");
+      
+      // Clean up any existing handlers first
+      tg.BackButton.offClick();
+      
+      // Add a new click handler
+      tg.BackButton.onClick(handleBackButtonClick);
+    } catch (e) {
+      console.error("Error in setupBackButton:", e);
+    }
+  };
+  
+  useEffect(() => {
+  
+    setupBackButton();
+    
+    // The rest of your code...
+    
+    // Clean up function
+    return () => {
+      if (tg.BackButton && typeof tg.BackButton.offClick === 'function') {
+        tg.BackButton.offClick();
+      }
+    };
+  }, [navigate, connection, roundsData]);
+
+
+
   // Load user public key and image from Telegram
   useEffect(() => {
     const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
@@ -241,7 +299,6 @@ const TurnPage = () => {
           </div>
         </div>
       </div>
-
       {/* Game Grid */}
       <div className="px-4 flex-1">
         <div className={`grid grid-cols-${gridConfig.gridCols} gap-2`}>

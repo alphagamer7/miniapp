@@ -236,8 +236,12 @@ const usePhantomWallet = () => {
       session: '',
       userId: ''
     });
+    const gameId = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.GAME_ID);
     localStorage.clear();
     setError('');
+    if (gameId !== null) {
+      localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.GAME_ID, gameId);
+    }
     
     WebApp.sendData(JSON.stringify({
       type: 'wallet_disconnected'

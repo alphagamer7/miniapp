@@ -123,7 +123,14 @@ const HomePage = () => {
       userId: ''
     });
     alert(`Disconnected ${walletState.isConnected}`);
-    localStorage.clear()
+
+    const gameId = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.GAME_ID);
+    localStorage.clear();
+
+    if (gameId !== null) {
+      localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.GAME_ID, gameId);
+    }
+    
     // localStorage.removeItem('phantomWallet');
     // localStorage.removeItem('publicKey');
     // localStorage.removeItem('phantom_encrypted_data');

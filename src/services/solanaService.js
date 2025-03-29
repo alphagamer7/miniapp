@@ -11,7 +11,7 @@ export class SolanaService {
   static getGameId() {
     // Get the game ID from localStorage with fallback
     const storedGameId = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.GAME_ID);
-    alert('v1 Stored Game ID:'+ storedGameId || WALLET_CONFIG.DEFAULT_GAME_ID);
+    alert('v2 Stored Game ID:'+ storedGameId || WALLET_CONFIG.DEFAULT_GAME_ID);
     return storedGameId || WALLET_CONFIG.DEFAULT_GAME_ID; // Use fallback value if not found
   }
 

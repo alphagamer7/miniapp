@@ -91,7 +91,6 @@ useEffect(() => {
             // Extract just the number part after "game_"
             const gameId = decodedString.substring(5);
             console.log('Game ID extracted:', gameId);
-            alert("v2 Game ID: " + gameId);
             GameParams.saveGameId(gameId);
           }
         } catch (error) {

@@ -34,6 +34,7 @@ export function useGameId({ subscribe = false } = {}) {
   const updateGameId = (newGameId) => {
     GameParams.saveGameId(newGameId);
     setGameId(newGameId);
+    localStorage.setItem(WALLET_CONFIG.STORAGE_KEYS.GAME_ID, newGameId);
   };
 
   /**

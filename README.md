@@ -35,6 +35,10 @@ yarn dev
 
 This will start a local development server, typically at `http://localhost:3000`.
 
+### Creating game id link
+https://t.me/testalphabot44123411bot?startapp=Z2FtZV8xNzQyMTcyMTkxOTQ3 
+Where Z2FtZV8xNzQyMTcyMTkxOTQ3 is the base64url encoded parameter for game_1742172191947
+
 ### Development with SSL (for testing Telegram features locally)
 
 The project is configured with Vite's SSL plugin. To run with HTTPS:

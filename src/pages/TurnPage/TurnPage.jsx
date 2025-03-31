@@ -64,7 +64,7 @@ const TurnPage = () => {
   };
   
   useEffect(() => {
-  
+    const tg = window.Telegram?.WebApp;
     setupBackButton();
     
     // The rest of your code...

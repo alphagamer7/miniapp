@@ -54,7 +54,8 @@ const HomePage = () => {
     if (!pubKeyStr) {
       if (!isMobile ) {
         console.log("Web APP");
-        navigate('/home');
+        
+        // navigate('/home');
       }
       console.log("No public key found in localStorage");
       return;

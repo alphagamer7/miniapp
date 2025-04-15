@@ -372,11 +372,11 @@ const TurnPage = () => {
                           playerWinner ? 'bg-yellow-400' : 
                           isEliminated ? 'bg-gray-400' : 'bg-yellow-500'
                         }`}>
-                          <img 
-                            src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t50x50.jpg"} 
-                            alt="User"
-                            className={`w-full h-full object-cover  ${isEliminated ? 'opacity-50' : ''}`}
-                          />
+                        <img 
+                        src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t50x50.jpg"} 
+                        alt="User"
+                        className={`object-cover ${userImage ? 'w-12 h-12' : 'w-full h-full'} ${isEliminated ? 'opacity-50' : ''}`}
+                      />
                         </div>
                       ) : (
                         <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden transition-colors duration-100 ${

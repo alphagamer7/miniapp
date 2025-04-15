@@ -4,7 +4,7 @@ export const WALLET_CONFIG = {
   PHANTOM_CONNECT_URL: 'https://phantom.app/ul/v1',
   APP_URL: 'https://thealphanova.com/',
   CLUSTER: 'devnet',
-  DEFAULT_GAME_ID: '1742867394316',
+  DEFAULT_GAME_ID: '1744682404897',
   STORAGE_KEYS: {
     WALLET: 'phantomWallet',
     ENCRYPTED_DATA: 'phantom_encrypted_data',

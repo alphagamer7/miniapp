@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AlertCircle, Trophy } from 'lucide-react';
 import { useGameData } from '@/provider/GameDataProvider';
 import WebApp from '@twa-dev/sdk';
@@ -17,6 +17,8 @@ const TurnPage = () => {
   const [userImage, setUserImage] = useState("");
   const [lastProcessedTurn, setLastProcessedTurn] = useState(0);
   const [animatedEliminatedPlayers, setAnimatedEliminatedPlayers] = useState([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const scrollContainerRef = useRef(null);
 
   // Get game data from context
   const { roundsData, connection } = useGameData();
@@ -77,7 +79,26 @@ const TurnPage = () => {
     };
   }, [navigate, connection, roundsData]);
 
+  // Add this effect to track scroll position and update current page
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
 
+    const handleScroll = () => {
+      const containerWidth = scrollContainer.clientWidth;
+      const scrollPosition = scrollContainer.scrollLeft;
+      
+      // Calculate which page is currently visible based on scroll position
+      const newPage = Math.round(scrollPosition / containerWidth);
+      
+      if (newPage !== currentPage) {
+        setCurrentPage(newPage);
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [currentPage]);
 
   // Load user public key and image from Telegram
   useEffect(() => {
@@ -175,28 +196,45 @@ const TurnPage = () => {
     );
   }
 
-  const calculateGridConfig = (totalPlayers) => {
-    // Always show 49 circles maximum (7x7 grid)
-    const totalSlots = 49;
-    const gridCols = 7;
-    
-    // If more than 49 players, we need to split some slots
-    const needsSplitting = totalPlayers > 49;
-    
-    // Calculate how many slots need to be split, starting from the first index
-    // Example: 53 players means we need to split 4 slots (53-49=4)
-    const playersThatNeedSplitting = needsSplitting ? totalPlayers - 49 : 0;
-    
+  const calculateGridConfig = () => {
+    // 7x7 grid with 49 total slots per page (user + 48 other players)
     return {
-      totalSlots,
-      gridCols,
-      showDoublePerSlot: needsSplitting,
-      playersThatNeedSplitting
+      totalSlots: 49,
+      gridCols: 7
     };
   };
 
   const getAllPlayerIndexes = () => {
     return Array.from({ length: currentRound.players.length }, (_, i) => i);
+  };
+
+  // Reordering function to always place the current user as the first position on every page
+  // followed by exactly 48 other players
+  const getReorderedPlayersForPage = (pageIndex) => {
+    const allPlayers = getAllPlayerIndexes();
+    // Each page shows 48 regular players (plus the user player)
+    const startIndex = pageIndex * 48;
+    const endIndex = Math.min(startIndex + 48, allPlayers.length);
+    
+    // Always put the user first, followed by the other players for this page
+    let pagePlayers = [];
+    
+    // First add the user
+    pagePlayers.push(userPlayerIndex);
+    
+    // Then add exactly 48 other players for this page, skipping the user if they would be in this range
+    let count = 0;
+    let i = startIndex;
+    
+    while (count < 48 && i < allPlayers.length) {
+      if (allPlayers[i] !== userPlayerIndex) {
+        pagePlayers.push(allPlayers[i]);
+        count++;
+      }
+      i++;
+    }
+    
+    return pagePlayers;
   };
 
   const getEliminatedPlayerIndexes = () => {
@@ -266,6 +304,7 @@ const TurnPage = () => {
 
   // Always use all player indexes for the grid, but mark eliminated ones based on phase
   const displayPlayerIndexes = getAllPlayerIndexes();
+  const totalPages = Math.ceil((displayPlayerIndexes.length - 1) / 48 + 1); // Updated calculation for pages
   
   // Determine which players to show as eliminated based on the current phase
   let eliminatedPlayers = [];
@@ -277,7 +316,7 @@ const TurnPage = () => {
     eliminatedPlayers = animatedEliminatedPlayers;
   }
   
-  const gridConfig = calculateGridConfig(displayPlayerIndexes.length);
+  const gridConfig = calculateGridConfig();
   
   // Player states
   const playerEliminated = isPlayerEliminated();
@@ -301,81 +340,90 @@ const TurnPage = () => {
       </div>
       {/* Game Grid */}
       <div className="px-4 flex-1">
-        <div className={`grid grid-cols-${gridConfig.gridCols} gap-2`}>
-          {Array(gridConfig.totalSlots).fill(null).map((_, gridIndex) => {
-            // Determine which player(s) to show in this slot
-            let playerIndexes = [];
-            
-            if (gridConfig.showDoublePerSlot) {
-              // First determine if this slot needs to be split
-              const needsSplitting = gridIndex < gridConfig.playersThatNeedSplitting;
-              
-              if (needsSplitting) {
-                // This slot shows 2 players
-                playerIndexes.push(gridIndex); // First player in this slot
-                
-                // Second player is at index 49 + gridIndex
-                const secondPlayerIndex = 49 + gridIndex;
-                if (secondPlayerIndex < displayPlayerIndexes.length) {
-                  playerIndexes.push(secondPlayerIndex);
-                }
-              } else {
-                // This slot shows 1 player (the player at this position)
-                if (gridIndex < displayPlayerIndexes.length) {
-                  playerIndexes.push(gridIndex);
-                } else {
-                  return <div key={gridIndex} className="aspect-square" />;
-                }
-              }
-            } else {
-              // For 49 or fewer players, show one player per slot
-              if (gridIndex < displayPlayerIndexes.length) {
-                playerIndexes.push(gridIndex);
-              } else {
-                // Empty slot if we've shown all players
-                return <div key={gridIndex} className="aspect-square" />;
-              }
-            }
-            
-            return (
-              <div key={gridIndex} className="aspect-square flex flex-col">
-                {playerIndexes.map((playerIndex, slotPosition) => {
-                  // Check if this is the current user
-                  const isUserPosition = playerIndex === userPlayerIndex;
-                  const isEliminated = eliminatedPlayers.includes(playerIndex);
-                  
-                  // Height will be full for single player, or 50% for double players
-                  const heightClass = playerIndexes.length > 1 ? 'h-1/2' : 'h-full';
-                  
-                  return (
-                    <div key={`player-${playerIndex}`} className={`${heightClass} w-full ${slotPosition > 0 ? 'mt-1' : ''}`}>
-                      {isUserPosition ? (
+        <div 
+          ref={scrollContainerRef}
+          className="overflow-x-auto hide-scrollbar" 
+          style={{ scrollSnapType: 'x mandatory' }}
+        >
+          <div className="flex">
+            {Array(totalPages).fill(null).map((_, pageIndex) => (
+              <div 
+                key={`page-${pageIndex}`} 
+                className="min-w-full flex-shrink-0"
+                style={{ scrollSnapAlign: 'start' }}
+              >
+                <div className={`grid grid-cols-${gridConfig.gridCols} gap-2`}>
+                  {getReorderedPlayersForPage(pageIndex).map((playerIndex, gridIndex) => {
+                    // If no player at this index, show empty slot
+                    // if (playerIndex < 0 || playerIndex >= displayPlayerIndexes.length) {
+                    //   console.log("TEST WORKING")
+                    //   return <div key={`grid-${pageIndex}-${gridIndex}`} className="aspect-square" />;
+                    // }
+                    
+                    // Check if this is the current user
+                    const isUserPosition = playerIndex === userPlayerIndex;
+                    const isEliminated = eliminatedPlayers.includes(playerIndex);
+                    
+                    return (
+                      <div key={`grid-${pageIndex}-${gridIndex}`} className="aspect-square flex flex-col">
+                         
+                         {isUserPosition ? (
                         <div className={`w-full h-full rounded-full overflow-hidden ${
                           playerWinner ? 'bg-yellow-400' : 
                           isEliminated ? 'bg-gray-400' : 'bg-yellow-500'
                         }`}>
                           <img 
-                            src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t500x500.jpg"} 
+                            src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t50x50.jpg"} 
                             alt="User"
-                            className={`w-full h-full object-cover ${isEliminated ? 'opacity-50' : ''}`}
+                            className={`w-full h-full object-cover  ${isEliminated ? 'opacity-50' : ''}`}
                           />
                         </div>
                       ) : (
-                        <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden transition-colors duration-500 ${
+                        <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden transition-colors duration-100 ${
                           isEliminated ? 'bg-gray-400' : 'bg-white/80'
                         }`}>
-                          <span className={`transition-colors duration-500 ${isEliminated ? 'text-gray-600' : 'text-gray-800'}`}>
+                          <span className={`transition-colors duration-100 ${isEliminated ? 'text-gray-600' : 'text-gray-800'}`}>
                             P{playerIndex + 1}
                           </span>
                         </div>
                       )}
-                    </div>
-                  );
-                })}
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Add empty slots if needed to fill the grid */}
+                  {Array(Math.max(0, gridConfig.totalSlots - getReorderedPlayersForPage(pageIndex).length))
+                    .fill(null)
+                    .map((_, i) => (
+                      <div key={`empty-${pageIndex}-${i}`} className="aspect-square" />
+                    ))
+                  }
+                </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
+        
+        {/* Page indicator dots */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-3 space-x-1">
+            {Array(totalPages).fill(null).map((_, i) => (
+              <div 
+                key={`dot-${i}`} 
+                className={`h-2 w-2 rounded-full transition-colors duration-100 ${i === currentPage ? 'bg-white' : 'bg-white/40'}`}
+                onClick={() => {
+                  // Add click functionality to navigate to page
+                  if (scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollTo({
+                      left: i * scrollContainerRef.current.clientWidth,
+                      behavior: 'smooth'
+                    });
+                  }
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Bottom Section */}
@@ -560,6 +608,16 @@ const styles = `
     100% {
       transform: translateY(0);
     }
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari, Opera */
   }
 `;
 

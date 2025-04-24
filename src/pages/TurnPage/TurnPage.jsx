@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AlertCircle, Trophy } from 'lucide-react';
 import { useGameData } from '@/provider/GameDataProvider';
 import WebApp from '@twa-dev/sdk';
@@ -20,12 +20,116 @@ const TurnPage = () => {
   const [animatedEliminatedPlayers, setAnimatedEliminatedPlayers] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   
+  // Touch handling state
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const initialTouchY = useRef(null);
+  const lastTouchY = useRef(null);
+  
   // Refs
   const scrollContainerRef = useRef(null);
+  const pageContainerRef = useRef(null);
   const eliminationListRef = useRef(null); // New ref for elimination list container
 
   // Get game data from context
   const { roundsData, connection } = useGameData();
+
+  // Prevent default on touchmove to stop mini app from closing
+  useEffect(() => {
+    const handleTouchStart = (e) => {
+      initialTouchY.current = e.touches[0].clientY;
+      lastTouchY.current = e.touches[0].clientY;
+    };
+
+    const handleTouchMove = (e) => {
+      if (!initialTouchY.current) return;
+      
+      const currentTouchY = e.touches[0].clientY;
+      const deltaY = currentTouchY - lastTouchY.current;
+      lastTouchY.current = currentTouchY;
+      
+      // Calculate total movement from start
+      const totalMoveY = currentTouchY - initialTouchY.current;
+      
+      // If user is scrolling down (positive deltaY), let it happen normally
+      if (deltaY > 0) return;
+      
+      // If at the top of the page and trying to scroll up, prevent default
+      const pageContainer = pageContainerRef.current;
+      if (pageContainer && pageContainer.scrollTop <= 0 && totalMoveY < -10) {
+        e.preventDefault();
+      }
+    };
+
+    const handleTouchEnd = () => {
+      initialTouchY.current = null;
+      lastTouchY.current = null;
+    };
+
+    // Add listeners to the document
+    const pageContainer = pageContainerRef.current;
+    if (pageContainer) {
+      pageContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+      pageContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+      pageContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
+    }
+
+    return () => {
+      if (pageContainer) {
+        pageContainer.removeEventListener('touchstart', handleTouchStart);
+        pageContainer.removeEventListener('touchmove', handleTouchMove);
+        pageContainer.removeEventListener('touchend', handleTouchEnd);
+      }
+    };
+  }, []);
+
+  // Swipe handling functions for page navigation
+  const handleTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50; // min distance for swipe
+    const isRightSwipe = distance < -50;
+    
+    if (isLeftSwipe && currentPage < totalPages - 1) {
+      // Swipe left - go to next page
+      setCurrentPage(prevPage => {
+        const newPage = Math.min(prevPage + 1, totalPages - 1);
+        scrollToPage(newPage);
+        return newPage;
+      });
+    } else if (isRightSwipe && currentPage > 0) {
+      // Swipe right - go to previous page
+      setCurrentPage(prevPage => {
+        const newPage = Math.max(prevPage - 1, 0);
+        scrollToPage(newPage);
+        return newPage;
+      });
+    }
+    
+    // Reset values
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  // Function to scroll to specific page
+  const scrollToPage = (pageIndex) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        left: pageIndex * scrollContainerRef.current.clientWidth,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const handleBackButtonClick = () => {
     const tg = window.Telegram?.WebApp;
@@ -69,6 +173,11 @@ const TurnPage = () => {
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     setupBackButton();
+    
+    // Prevent the mini app from closing on scroll
+    if (tg) {
+      tg.enableClosingConfirmation();
+    }
     
     // Clean up function
     return () => {
@@ -345,7 +454,10 @@ const TurnPage = () => {
   const playerWinner = isPlayerWinner();
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-[#4400CE] overflow-hidden">
+    <div
+      ref={pageContainerRef}
+      className="min-h-screen w-full flex flex-col bg-[#4400CE] overflow-hidden prevent-pull-refresh"
+    >
       {/* Round Info */}
       <div className="p-4">
         <div className="bg-transparent border border-white/20 rounded-xl p-4 text-white">
@@ -361,12 +473,15 @@ const TurnPage = () => {
         </div>
       </div>
 
-      {/* Game Grid - FIXED SIZE */}
+      {/* Game Grid - FIXED SIZE with Touch Handling */}
       <div className="flex-1 overflow-hidden">
         <div 
           ref={scrollContainerRef}
           className="w-full h-full overflow-x-auto hide-scrollbar" 
           style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <div className="flex h-full" style={{ width: '100%' }}>
             {Array(totalPages).fill(null).map((_, pageIndex) => (
@@ -432,12 +547,8 @@ const TurnPage = () => {
                 className={`h-2 w-2 rounded-full transition-colors duration-100 ${i === currentPage ? 'bg-white' : 'bg-white/40'}`}
                 onClick={() => {
                   // Add click functionality to navigate to page
-                  if (scrollContainerRef.current) {
-                    scrollContainerRef.current.scrollTo({
-                      left: i * scrollContainerRef.current.clientWidth,
-                      behavior: 'smooth'
-                    });
-                  }
+                  setCurrentPage(i);
+                  scrollToPage(i);
                 }}
               />
             ))}
@@ -643,6 +754,12 @@ const styles = `
   
   .hide-scrollbar::-webkit-scrollbar {
     display: none;             /* Chrome, Safari, Opera */
+  }
+  
+  /* Prevent pull-to-refresh behavior */
+  .prevent-pull-refresh {
+    overscroll-behavior-y: contain;
+    touch-action: pan-x pan-y;
   }
 `;
 

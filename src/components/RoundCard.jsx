@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 export const RoundCard = ({ players, time, isLive, isJoined, roundAmount, roundId,roundState }) => {
   const navigate = useNavigate();
 
+  if (roundState === "Closed") {
+    return null;
+  }
+
   const handleClick = () => {
     navigate(`/round-detail/${roundId}`);
   };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AlertCircle, Trophy } from 'lucide-react';
 import { useGameData } from '@/provider/GameDataProvider';
 import WebApp from '@twa-dev/sdk';
@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import Lottie from 'lottie-react';
 import animationData from '@/assets/WaitingClock.json'
 import { WALLET_CONFIG } from '@/config/wallet.config';
+
 const WaitingTurnPage = () => {
   const navigate = useNavigate();
   // Get round ID from URL
@@ -19,10 +20,119 @@ const WaitingTurnPage = () => {
   const [userImage, setUserImage] = useState("");
   const [showAllPlayers, setShowAllPlayers] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState('');
-
+  
+  // Pagination and scroll state
+  const [currentPage, setCurrentPage] = useState(0);
+  const scrollContainerRef = useRef(null);
+  
+  // Touch handling state
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
 
   // Get game data from context
   const { roundsData, connection } = useGameData();
+  
+  // Swipe handling functions
+  const handleTouchStart = (e) => {
+    setTouchEnd(null); // Reset touchEnd
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50; // min distance for swipe
+    const isRightSwipe = distance < -50;
+    
+    // Calculate total pages
+    const totalPlayers = currentRound?.players?.length || 0;
+    const totalPages = Math.ceil(totalPlayers / 49);
+    
+    if (isLeftSwipe && currentPage < totalPages - 1) {
+      // Swipe left - go to next page
+      setCurrentPage(prevPage => {
+        const newPage = Math.min(prevPage + 1, totalPages - 1);
+        scrollToPage(newPage);
+        return newPage;
+      });
+    } else if (isRightSwipe && currentPage > 0) {
+      // Swipe right - go to previous page
+      setCurrentPage(prevPage => {
+        const newPage = Math.max(prevPage - 1, 0);
+        scrollToPage(newPage);
+        return newPage;
+      });
+    }
+    
+    // Reset values
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  // Function to scroll to specific page
+  const scrollToPage = (pageIndex) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        left: pageIndex * scrollContainerRef.current.clientWidth,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Setup back button for Telegram
+  const handleBackButtonClick = () => {
+    try {
+      setTimeout(() => {
+        navigate('/');
+      }, 0);
+      return false;
+    } catch (e) {
+      console.error("Navigation error:", e);
+    }
+  };
+
+  const setupBackButton = () => {
+    const tg = window.Telegram?.WebApp;
+    
+    if (!tg) {
+      console.error("Telegram WebApp not available");
+      return;
+    }
+    
+    try {
+      tg.BackButton.show();
+      tg.BackButton.offClick();
+      tg.BackButton.onClick(handleBackButtonClick);
+    } catch (e) {
+      console.error("Error in setupBackButton:", e);
+    }
+  };
+
+  // Add effect to track scroll position and update current page
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const containerWidth = scrollContainer.clientWidth;
+      const scrollPosition = scrollContainer.scrollLeft;
+      
+      // Calculate which page is currently visible based on scroll position
+      const newPage = Math.round(scrollPosition / containerWidth);
+      
+      if (newPage !== currentPage) {
+        setCurrentPage(newPage);
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [currentPage]);
 
   // Load user public key and image from Telegram
   useEffect(() => {
@@ -55,8 +165,18 @@ const WaitingTurnPage = () => {
     }
   }, [currentRound, userPubKey]);
 
+  // Setup back button
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    setupBackButton();
+    
+    return () => {
+      if (tg && tg.BackButton && typeof tg.BackButton.offClick === 'function') {
+        tg.BackButton.offClick();
+      }
+    };
+  }, []);
 
- 
   useEffect(() => {
     // Only create this effect once currentRound is available
     if (!currentRound || !currentRound.scheduleStartTime) {
@@ -126,6 +246,7 @@ const WaitingTurnPage = () => {
       </div>
     );
   }
+  
   const LottieAnimation = () => {
     return (
       <div className="lottie-container w-full h-64 flex items-center justify-center">
@@ -144,24 +265,36 @@ const WaitingTurnPage = () => {
   };
 
   const calculateGridConfig = (totalPlayers) => {
-    if (totalPlayers <= 49) {
-      return {
-        totalSlots: totalPlayers,
-        playersPerSlot: 1,
-        gridCols: Math.min(7, Math.ceil(Math.sqrt(totalPlayers)))
-      };
-    }
+    // Default grid config
+    const defaultConfig = {
+      totalSlots: 49,
+      playersPerSlot: 1,
+      gridCols: 7
+    };
+    
+    // Calculate total pages needed
+    const totalPages = Math.ceil(totalPlayers / 49);
     
     return {
-      totalSlots: 49,
-      playersPerSlot: Math.ceil(totalPlayers / 49),
-      gridCols: 7
+      ...defaultConfig,
+      totalPages,
     };
   };
 
   const getAllPlayerIndexes = () => {
     return Array.from({ length: currentRound.players.length }, (_, i) => i);
   };
+  
+  // Get player indexes for the current page
+  const getPlayersForPage = (pageIndex) => {
+    const allPlayers = getAllPlayerIndexes();
+    const startIndex = pageIndex * 49;
+    const endIndex = Math.min(startIndex + 49, allPlayers.length);
+    
+    // Get players for this page, with the current user highlighted
+    return allPlayers.slice(startIndex, endIndex);
+  };
+  
   function formatTimestamp(timestamp) {
     const date = new Date(parseInt(timestamp) * 1000);
     
@@ -186,11 +319,10 @@ const WaitingTurnPage = () => {
   // Always use all player indexes for the grid, but mark eliminated ones
   const displayPlayerIndexes = getAllPlayerIndexes();
   const gridConfig = calculateGridConfig(displayPlayerIndexes.length);
-  
-
+  const totalPages = gridConfig.totalPages;
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-[#4400CE] overflow-auto">
+    <div className="min-h-screen w-full flex flex-col bg-[#4400CE] overflow-hidden">
       {/* Round Info */}
       <div className="p-4">
         <div className="bg-transparent border border-white/20 rounded-xl p-4 text-white">
@@ -203,50 +335,88 @@ const WaitingTurnPage = () => {
         </div>
       </div>
 
-      {/* Game Grid */}
+      {/* Game Grid with Swipe Functionality */}
       <div className="px-4 flex-1">
-        <div className="grid grid-cols-7 gap-2 mb-4">
-          {Array(gridConfig.totalSlots).fill(null).map((_, gridIndex) => {
-            // If we have fewer players than grid slots, only show slots up to player count
-            if (gridIndex >= displayPlayerIndexes.length) {
-              return <div key={gridIndex} className="aspect-square" />;
-            }
-            
-            // Get the actual player index for this grid position
-            const playerIndex = displayPlayerIndexes[gridIndex];
-            
-            // Check if this is the current user
-            const isUserPosition = playerIndex === userPlayerIndex ;
-            
-            return (
-              <div key={gridIndex} className="aspect-square">
-                {isUserPosition ? (
-                  <div className={`w-full h-full rounded-full overflow-hidden ${
-                   'bg-yellow-500'
-                  }`}>
-                    <img 
-                      src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t500x500.jpg"} 
-                      alt="User"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden bg-white/80`}>
-                    <span className={`text-gray-800`}>
-                      P{playerIndex + 1}
-                    </span>
-                  </div>
-                )}
+        <div 
+          ref={scrollContainerRef}
+          className="overflow-x-auto hide-scrollbar" 
+          style={{ scrollSnapType: 'x mandatory' }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="flex">
+            {Array(totalPages).fill(null).map((_, pageIndex) => (
+              <div 
+                key={`page-${pageIndex}`} 
+                className="min-w-full flex-shrink-0"
+                style={{ scrollSnapAlign: 'start' }}
+              >
+                <div className="grid grid-cols-7 gap-2 mb-4">
+                  {getPlayersForPage(pageIndex).map((playerIndex) => {
+                    // Check if this is the current user
+                    const isUserPosition = playerIndex === userPlayerIndex;
+                    
+                    return (
+                      <div key={`player-${playerIndex}`} className="aspect-square">
+                        {isUserPosition ? (
+                          <div className="w-full h-full rounded-full bg-yellow-500 overflow-hidden">
+                            <img 
+                              src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t50x50.jpg"} 
+                              alt="User"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden bg-white/80">
+                            <span className="text-gray-800">
+                              P{playerIndex + 1}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Add empty slots if needed to fill the grid */}
+                  {Array(Math.max(0, 49 - getPlayersForPage(pageIndex).length))
+                    .fill(null)
+                    .map((_, i) => (
+                      <div key={`empty-${pageIndex}-${i}`} className="aspect-square" />
+                    ))
+                  }
+                </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
+        
+        {/* Page indicator dots with navigation */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-3 space-x-1">
+            {Array(totalPages).fill(null).map((_, i) => (
+              <div 
+                key={`dot-${i}`} 
+                className={`h-2 w-2 rounded-full transition-colors duration-100 ${i === currentPage ? 'bg-white' : 'bg-white/40'}`}
+                onClick={() => {
+                  // Add click functionality to navigate to page
+                  setCurrentPage(i);
+                  scrollToPage(i);
+                }}
+              />
+            ))}
+          </div>
+        )}
+        
+        
       </div>
+      
       {currentRound.state !== "Started" && (
         <div className="w-full">
           <LottieAnimation/>
         </div>
       )}
+      
       {/* Bottom Section */}
       <div className="w-full px-4 pb-8">
         <div className="w-full">
@@ -268,5 +438,23 @@ const WaitingTurnPage = () => {
     </div>
   );
 };
+
+// Add these styles for the component
+const styles = `
+  /* Hide scrollbar but keep functionality */
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari, Opera */
+  }
+`;
+
+// Add this right after the styles
+const styleSheet = document.createElement("style");
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);
 
 export default WaitingTurnPage;

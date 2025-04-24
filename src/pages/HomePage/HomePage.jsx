@@ -62,6 +62,7 @@ const HomePage = () => {
     }
     setUserPublicKey(pubKeyStr);
     if (roundsData && roundsData.length > 0) {
+      const activeRounds = roundsData.filter(round => round.state !== "Closed");
       setfirstTwoRounds(roundsData.slice(0, 2));
     }
   }, [roundsData]);
@@ -207,12 +208,15 @@ const HomePage = () => {
         ))}
 
         {/* View More Button */}
+        {firstTwoRounds.length>2?
         <button 
-          onClick={() => navigate('/round-list1')}
-          className="w-full bg-transparent border border-black rounded-xl p-4 text-white text-center"
-        >
-          View More...
-        </button>
+        onClick={() => navigate('/round-list1')}
+        className="w-full bg-transparent border border-black rounded-xl p-4 text-white text-center"
+      >
+        View More...
+      </button>:
+      <div></div>
+      }
       </div>
     </div>
   );

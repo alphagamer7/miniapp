@@ -14,6 +14,7 @@ const TestTurnPage = () => {
   const [userImage, setUserImage] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const scrollContainerRef = useRef(null);
+  const pageRefs = useRef([]);
 
   useEffect(() => {
     // Set user player index (this would come from your game data in the real app)
@@ -45,7 +46,7 @@ const TestTurnPage = () => {
       // Calculate which page is currently visible based on scroll position
       const newPage = Math.round(scrollPosition / containerWidth);
       
-      if (newPage !== currentPage) {
+      if (newPage !== currentPage && newPage >= 0 && newPage < totalPages) {
         setCurrentPage(newPage);
       }
     };
@@ -55,7 +56,7 @@ const TestTurnPage = () => {
   }, [currentPage]);
 
   const calculateGridConfig = () => {
-    // 7x7 grid with 49 total slots per page (user + 48 other players)
+    // 7x7 grid with 49 total slots per page
     return {
       totalSlots: 49,
       gridCols: 7
@@ -100,73 +101,88 @@ const TestTurnPage = () => {
     return pagePlayers;
   };
   
-
   const allPlayerIndexes = getAllPlayerIndexes();
   const totalPages = Math.ceil(allPlayerIndexes.length / 49);
   const userPage = getUserPage();
   const eliminatedPlayers = getPreviouslyEliminatedPlayers();
   const gridConfig = calculateGridConfig();
   
-  // Function to handle page navigation to user's page
-  const scrollToUserPage = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        left: userPage * scrollContainerRef.current.clientWidth,
-        behavior: 'smooth'
-      });
+  // Navigate to a specific page by index
+  const navigateToPage = (pageIndex) => {
+    if (scrollContainerRef.current && pageIndex >= 0 && pageIndex < totalPages) {
+      const targetPage = pageRefs.current[pageIndex];
+      if (targetPage) {
+        targetPage.scrollIntoView({ behavior: 'smooth', inline: 'start' });
+      } else {
+        // Fallback to using client width calculation
+        scrollContainerRef.current.scrollTo({
+          left: pageIndex * scrollContainerRef.current.clientWidth,
+          behavior: 'smooth'
+        });
+      }
+      setCurrentPage(pageIndex);
     }
   };
-
-  // No need to scroll to user's page since user is now on every page
+  
+  // Initialize page refs
+  useEffect(() => {
+    pageRefs.current = pageRefs.current.slice(0, totalPages);
+  }, [totalPages]);
   
   return (
     <div className="min-h-screen w-full flex flex-col bg-[#4400CE] overflow-hidden">
-      <br></br>
+      <br />
 
-      {/* Game Grid */}
-      <div className="px-4 flex-1">
-        {/* Use the ref on the scroll container */}
+      {/* Game Grid - CRITICAL FIX: Remove px-4 from this container */}
+      <div className="flex-1 overflow-hidden">
+        {/* CRITICAL FIX: Add w-full here to constrain width */}
         <div 
           ref={scrollContainerRef}
-          className="overflow-x-auto hide-scrollbar" 
-          style={{ scrollSnapType: 'x mandatory' }}
+          className="w-full overflow-x-auto hide-scrollbar" 
+          style={{ 
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch', // Better iOS scrolling
+          }}
         >
-          <div className="flex">
+          {/* CRITICAL FIX: Use width: 100% to ensure proper rendering */}
+          <div className="flex" style={{ width: '100%' }}>
             {Array(totalPages).fill(null).map((_, pageIndex) => (
               <div 
-                key={`page-${pageIndex}`} 
-                className="min-w-full flex-shrink-0"
-                style={{ scrollSnapAlign: 'start' }}
+                key={`page-${pageIndex}`}
+                ref={el => pageRefs.current[pageIndex] = el}
+                className="min-w-full w-full flex-shrink-0 px-4" // CRITICAL FIX: Add padding here
+                style={{ 
+                  scrollSnapAlign: 'start',
+                  scrollSnapStop: 'always', // Force snap points
+                }}
               >
-                <div className={`grid grid-cols-${gridConfig.gridCols} gap-2`}>
+                {/* CRITICAL FIX: Use exact number of columns and fixed width */}
+                <div className="grid grid-cols-7 gap-2 w-full">
                   {getReorderedPlayersForPage(pageIndex).map((playerIndex, gridIndex) => {
                     const isUserPosition = playerIndex === userPlayerIndex;
                     const isEliminated = eliminatedPlayers.includes(playerIndex);
                     
                     return (
-                      <div key={`grid-${pageIndex}-${gridIndex}`} className="aspect-square flex flex-col">
-                         
-
-                         {isUserPosition ? (
-                        <div className={`w-full h-full rounded-full overflow-hidden ${
-                          1!=1 ? 'bg-yellow-400' : 
-                          isEliminated ? 'bg-gray-400' : 'bg-yellow-500'
-                        }`}>
-                          <img 
-                            src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t50x50.jpg"} 
-                            alt="User"
-                            className={`w-full h-full object-cover  ${isEliminated ? 'opacity-50' : ''}`}
-                          />
-                        </div>
-                      ) : (
-                        <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden transition-colors duration-500 ${
-                          isEliminated ? 'bg-gray-400' : 'bg-white/80'
-                        }`}>
-                          <span className={`transition-colors duration-500 ${isEliminated ? 'text-gray-600' : 'text-gray-800'}`}>
-                            P{playerIndex + 1}
-                          </span>
-                        </div>
-                      )}
+                      <div key={`grid-${pageIndex}-${gridIndex}`} className="aspect-square">
+                        {isUserPosition ? (
+                          <div className={`w-full h-full rounded-full ${
+                            isEliminated ? 'bg-gray-400' : 'bg-yellow-500'
+                          }`}>
+                            <img 
+                              src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t50x50.jpg"} 
+                              alt="User"
+                              className={`w-full h-full object-cover rounded-full ${isEliminated ? 'opacity-50' : ''}`}
+                            />
+                          </div>
+                        ) : (
+                          <div className={`w-full h-full rounded-full flex items-center justify-center text-xs ${
+                            isEliminated ? 'bg-gray-400' : 'bg-white/80'
+                          }`}>
+                            <span className={`${isEliminated ? 'text-gray-600' : 'text-gray-800'}`}>
+                              P{playerIndex + 1}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -184,33 +200,24 @@ const TestTurnPage = () => {
           </div>
         </div>
         
-        {/* Page indicator dots */}
+        {/* Page indicator dots - CRITICAL FIX: Improved click handling */}
         {totalPages > 1 && (
           <div className="flex justify-center mt-3 space-x-1">
             {Array(totalPages).fill(null).map((_, i) => (
               <div 
                 key={`dot-${i}`} 
-                className={`h-2 w-2 rounded-full transition-colors duration-300 ${i === currentPage ? 'bg-white' : 'bg-white/40'}`}
-                onClick={() => {
-                  if (scrollContainerRef.current) {
-                    scrollContainerRef.current.scrollTo({
-                      left: i * scrollContainerRef.current.clientWidth,
-                      behavior: 'smooth'
-                    });
-                  }
-                }}
+                className={`h-2 w-2 rounded-full cursor-pointer transition-colors duration-300 ${i === currentPage ? 'bg-white' : 'bg-white/40'}`}
+                onClick={() => navigateToPage(i)}
               />
             ))}
           </div>
         )}
       </div>
-
-      {/* No need for Find Me button since user is on every page */}
     </div>
   );
 };
 
-// Add these styles at the top of your file, after the imports
+// CSS Styles
 const styles = `
   @keyframes borderGlow {
     0% {
@@ -261,7 +268,7 @@ const styles = `
   }
 `;
 
-// Add this right after the styles
+// Add styles to document
 const styleSheet = document.createElement("style");
 styleSheet.innerText = styles;
 document.head.appendChild(styleSheet);

@@ -4,6 +4,7 @@ import { useGameData } from '@/provider/GameDataProvider';
 import WebApp from '@twa-dev/sdk';
 import { useNavigate } from 'react-router-dom';
 import { WALLET_CONFIG } from '@/config/wallet.config';
+
 const TurnPage = () => {
   const navigate = useNavigate();
   // Get round ID from URL
@@ -18,7 +19,10 @@ const TurnPage = () => {
   const [lastProcessedTurn, setLastProcessedTurn] = useState(0);
   const [animatedEliminatedPlayers, setAnimatedEliminatedPlayers] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
+  
+  // Refs
   const scrollContainerRef = useRef(null);
+  const eliminationListRef = useRef(null); // New ref for elimination list container
 
   // Get game data from context
   const { roundsData, connection } = useGameData();
@@ -26,8 +30,6 @@ const TurnPage = () => {
   const handleBackButtonClick = () => {
     const tg = window.Telegram?.WebApp;
     console.log("Back button clicked");
-    // alert('onClick triggered, navigating to /round-list1 v24')
-    const url = window.location.href;
     // Try different navigation approaches
     try {
       // Option 1: React Router navigation
@@ -38,10 +40,9 @@ const TurnPage = () => {
       return false;
     } catch (e) {
       console.error("Navigation error:", e);
-      // alert(`Navigation error: ${e}`)
-
     }
   };
+  
   const setupBackButton = () => {
     const tg = window.Telegram?.WebApp;
     
@@ -69,11 +70,9 @@ const TurnPage = () => {
     const tg = window.Telegram?.WebApp;
     setupBackButton();
     
-    // The rest of your code...
-    
     // Clean up function
     return () => {
-      if (tg.BackButton && typeof tg.BackButton.offClick === 'function') {
+      if (tg && tg.BackButton && typeof tg.BackButton.offClick === 'function') {
         tg.BackButton.offClick();
       }
     };
@@ -123,6 +122,14 @@ const TurnPage = () => {
     return previouslyEliminated;
   };
 
+  // Effect to reset elimination list scroll position when turn changes
+  useEffect(() => {
+    // Reset elimination list scroll position
+    if (eliminationListRef.current) {
+      eliminationListRef.current.scrollTop = 0;
+    }
+  }, [lastProcessedTurn, currentRound?.currentTurn, turnPhase]);
+
   // Load round data when roundsData or roundId changes
   useEffect(() => {
     const round = roundsData.find(r => r.id === roundId);
@@ -145,6 +152,11 @@ const TurnPage = () => {
         setAnimatedEliminatedPlayers(previouslyEliminated);
         setTurnPhase('countdown');
         setLastProcessedTurn(round.currentTurn);
+        
+        // Reset elimination list scroll position
+        if (eliminationListRef.current) {
+          eliminationListRef.current.scrollTop = 0;
+        }
       }
     }
   }, [roundId, roundsData, lastProcessedTurn]);
@@ -165,6 +177,11 @@ const TurnPage = () => {
       // After countdown, show players with eliminated ones
       const timer = setTimeout(() => {
         setTurnPhase('eliminated');
+        
+        // Reset elimination list scroll position when phase changes
+        if (eliminationListRef.current) {
+          eliminationListRef.current.scrollTop = 0;
+        }
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -184,6 +201,11 @@ const TurnPage = () => {
         }, index * 1500);
         return () => clearTimeout(timer);
       });
+      
+      // Reset elimination list scroll position
+      if (eliminationListRef.current) {
+        eliminationListRef.current.scrollTop = 0;
+      }
     }
   }, [turnPhase]);
 
@@ -339,27 +361,21 @@ const TurnPage = () => {
         </div>
       </div>
       {/* Game Grid */}
-      <div className="px-4 flex-1">
+      <div className="flex-1 overflow-hidden">
         <div 
           ref={scrollContainerRef}
-          className="overflow-x-auto hide-scrollbar" 
-          style={{ scrollSnapType: 'x mandatory' }}
+          className="w-full overflow-x-auto hide-scrollbar" 
+          style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
         >
-          <div className="flex">
+          <div className="flex" style={{ width: '100%' }}>
             {Array(totalPages).fill(null).map((_, pageIndex) => (
               <div 
                 key={`page-${pageIndex}`} 
-                className="min-w-full flex-shrink-0"
-                style={{ scrollSnapAlign: 'start' }}
+                className="min-w-full flex-shrink-0 px-4"
+                style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}
               >
-                <div className={`grid grid-cols-${gridConfig.gridCols} gap-2`}>
+                <div className={`grid grid-cols-7 gap-2 w-full`}>
                   {getReorderedPlayersForPage(pageIndex).map((playerIndex, gridIndex) => {
-                    // If no player at this index, show empty slot
-                    // if (playerIndex < 0 || playerIndex >= displayPlayerIndexes.length) {
-                    //   console.log("TEST WORKING")
-                    //   return <div key={`grid-${pageIndex}-${gridIndex}`} className="aspect-square" />;
-                    // }
-                    
                     // Check if this is the current user
                     const isUserPosition = playerIndex === userPlayerIndex;
                     const isEliminated = eliminatedPlayers.includes(playerIndex);
@@ -368,14 +384,14 @@ const TurnPage = () => {
                       <div key={`grid-${pageIndex}-${gridIndex}`} className="aspect-square flex flex-col">
                          
                          {isUserPosition ? (
-                        <div className={`w-full h-full rounded-full overflow-hidden ${
+                        <div className={`w-full h-full rounded-full flex overflow-hidden ${
                           playerWinner ? 'bg-yellow-400' : 
                           isEliminated ? 'bg-gray-400' : 'bg-yellow-500'
                         }`}>
                         <img 
                         src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t50x50.jpg"} 
                         alt="User"
-                        className={`object-cover ${userImage ? 'w-12 h-12' : 'w-full h-full'} ${isEliminated ? 'opacity-50' : ''}`}
+                        className={`w-full h-full object-cover ${userImage ? 'w-12 h-12' : 'w-full h-full'} ${isEliminated ? 'opacity-50' : ''}`}
                       />
                         </div>
                       ) : (
@@ -443,16 +459,19 @@ const TurnPage = () => {
                 Congratulations! You're the winner!
               </span>
               <button 
-                onClick={() => navigate('/round-list1')} 
+              onClick={() => navigate('/', { replace: true })} 
                 className="mt-4 px-6 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-medium transition-colors"
               >
-                Continue to Round List
+                Continue to Home Page
               </button>
             </div>
           ): playerEliminated ? (
             <div className="space-y-4">
               {/* Elimination animations - scrollable container */}
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 rounded-lg">
+              <div 
+                ref={eliminationListRef} // Add the ref here
+                className="space-y-2 max-h-48 overflow-y-auto pr-2 rounded-lg"
+              >
                 {getCurrentTurnEliminatedPlayers().length > 0 ? (
                   getCurrentTurnEliminatedPlayers().map((playerIndex, index) => {
                     // Check if this is the winner (first player in last turn)
@@ -505,7 +524,7 @@ const TurnPage = () => {
                   </span>
                 </div>
                 <button 
-                  onClick={() => navigate('/round-list1')} 
+                  onClick={() => navigate('/', { replace: true })} 
                   className="mt-4 px-6 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-medium transition-colors"
                 >
                   Continue to Round List
@@ -515,7 +534,10 @@ const TurnPage = () => {
           ) : (
             <div className="space-y-2">
               {/* Regular elimination animations - scrollable container */}
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 rounded-lg">
+              <div 
+                ref={eliminationListRef} // Add the ref here
+                className="space-y-2 max-h-48 overflow-y-auto pr-2 rounded-lg"
+              >
                 {getCurrentTurnEliminatedPlayers().length > 0 ? (
                   getCurrentTurnEliminatedPlayers().map((playerIndex, index) => {
                     // Check if this is the winner (first player in last turn)

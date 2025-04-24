@@ -138,7 +138,7 @@ const RoundDetailPage = () => {
 
   const handleConfirmClick = async () => {
     try {
-      alert("Confirming join round......");
+      // alert("Confirming join round......");
       setIsJoining(true);
       const pubKeyStr = localStorage.getItem(WALLET_CONFIG.STORAGE_KEYS.USER_PUBLIC_KEY);
       if (!pubKeyStr) {

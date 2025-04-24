@@ -360,60 +360,63 @@ const TurnPage = () => {
           </div>
         </div>
       </div>
-      {/* Game Grid */}
+
+      {/* Game Grid - FIXED SIZE */}
       <div className="flex-1 overflow-hidden">
         <div 
           ref={scrollContainerRef}
-          className="w-full overflow-x-auto hide-scrollbar" 
+          className="w-full h-full overflow-x-auto hide-scrollbar" 
           style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
         >
-          <div className="flex" style={{ width: '100%' }}>
+          <div className="flex h-full" style={{ width: '100%' }}>
             {Array(totalPages).fill(null).map((_, pageIndex) => (
               <div 
                 key={`page-${pageIndex}`} 
-                className="min-w-full flex-shrink-0 px-4"
+                className="min-w-full flex-shrink-0 px-4 flex items-center justify-center"
                 style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}
               >
-                <div className={`grid grid-cols-7 gap-2 w-full`}>
-                  {getReorderedPlayersForPage(pageIndex).map((playerIndex, gridIndex) => {
-                    // Check if this is the current user
-                    const isUserPosition = playerIndex === userPlayerIndex;
-                    const isEliminated = eliminatedPlayers.includes(playerIndex);
+                {/* Fixed size container for the grid to maintain consistent player circle sizes */}
+                <div className="w-full max-w-md">
+                  <div className={`grid grid-cols-7 gap-1 w-full`}>
+                    {getReorderedPlayersForPage(pageIndex).map((playerIndex, gridIndex) => {
+                      // Check if this is the current user
+                      const isUserPosition = playerIndex === userPlayerIndex;
+                      const isEliminated = eliminatedPlayers.includes(playerIndex);
+                      
+                      return (
+                        <div key={`grid-${pageIndex}-${gridIndex}`} className="aspect-square">
+                          {isUserPosition ? (
+                            <div className={`w-full h-full rounded-full flex overflow-hidden ${
+                              playerWinner ? 'bg-yellow-400' : 
+                              isEliminated ? 'bg-gray-400' : 'bg-yellow-500'
+                            }`}>
+                              <img 
+                                src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t50x50.jpg"} 
+                                alt="User"
+                                className={`w-full h-full object-cover ${isEliminated ? 'opacity-50' : ''}`}
+                              />
+                            </div>
+                          ) : (
+                            <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden transition-colors duration-100 ${
+                              isEliminated ? 'bg-gray-400' : 'bg-white/80'
+                            }`}>
+                              <span className={`transition-colors duration-100 ${isEliminated ? 'text-gray-600' : 'text-gray-800'}`}>
+                                P{playerIndex + 1}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                     
-                    return (
-                      <div key={`grid-${pageIndex}-${gridIndex}`} className="aspect-square flex flex-col">
-                         
-                         {isUserPosition ? (
-                        <div className={`w-full h-full rounded-full flex overflow-hidden ${
-                          playerWinner ? 'bg-yellow-400' : 
-                          isEliminated ? 'bg-gray-400' : 'bg-yellow-500'
-                        }`}>
-                        <img 
-                        src={userImage || "https://i1.sndcdn.com/avatars-000706728712-ol0h4p-t50x50.jpg"} 
-                        alt="User"
-                        className={`w-full h-full object-cover ${userImage ? 'w-12 h-12' : 'w-full h-full'} ${isEliminated ? 'opacity-50' : ''}`}
-                      />
-                        </div>
-                      ) : (
-                        <div className={`w-full h-full rounded-full flex items-center justify-center text-xs overflow-hidden transition-colors duration-100 ${
-                          isEliminated ? 'bg-gray-400' : 'bg-white/80'
-                        }`}>
-                          <span className={`transition-colors duration-100 ${isEliminated ? 'text-gray-600' : 'text-gray-800'}`}>
-                            P{playerIndex + 1}
-                          </span>
-                        </div>
-                      )}
-                      </div>
-                    );
-                  })}
-                  
-                  {/* Add empty slots if needed to fill the grid */}
-                  {Array(Math.max(0, gridConfig.totalSlots - getReorderedPlayersForPage(pageIndex).length))
-                    .fill(null)
-                    .map((_, i) => (
-                      <div key={`empty-${pageIndex}-${i}`} className="aspect-square" />
-                    ))
-                  }
+                    {/* Add empty slots if needed to fill the grid */}
+                    {Array(Math.max(0, gridConfig.totalSlots - getReorderedPlayersForPage(pageIndex).length))
+                      .fill(null)
+                      .map((_, i) => (
+                        <div key={`empty-${pageIndex}-${i}`} className="aspect-square" />
+                      ))
+                    }
+                  </div>
                 </div>
               </div>
             ))}
@@ -422,7 +425,7 @@ const TurnPage = () => {
         
         {/* Page indicator dots */}
         {totalPages > 1 && (
-          <div className="flex justify-center mt-3 space-x-1">
+          <div className="flex justify-center my-3 space-x-1">
             {Array(totalPages).fill(null).map((_, i) => (
               <div 
                 key={`dot-${i}`} 
@@ -443,7 +446,7 @@ const TurnPage = () => {
       </div>
 
       {/* Bottom Section */}
-      <div className="flex-1 flex items-end pb-8">
+      <div className="mt-auto pb-8">
         <div className="w-full px-4">
           {turnPhase === 'countdown' ? (
             <div className="bg-transparent border border-white/20 rounded-xl p-4">

@@ -62,7 +62,6 @@ const HomePage = () => {
     }
     setUserPublicKey(pubKeyStr);
     if (roundsData && roundsData.length > 0) {
-      const activeRounds = roundsData.filter(round => round.state !== "Closed");
       setfirstTwoRounds(roundsData.slice(0, 2));
     }
   }, [roundsData]);
